@@ -1,0 +1,67 @@
+id: bulk_rnaseq
+name: Bulk RNA-seq Differential Expression
+version: 0.1.0
+status: mvp_placeholder
+supported_inputs:
+  - omics_type: bulk_rnaseq
+    input_level: count_matrix
+    count_matrix_formats:
+      - csv
+      - tsv
+      - xlsx
+    metadata_formats:
+      - csv
+      - tsv
+      - xlsx
+required_metadata:
+  - sample_id_column
+  - group_column
+optional_metadata:
+  - batch_column
+  - covariates
+required_parameters:
+  - reference_group
+  - test_group
+  - organism
+  - gene_id_type
+qc_metrics:
+  - count_matrix_readable
+  - metadata_readable
+  - sample_ids_aligned
+  - count_values_non_negative
+  - count_values_integer_like
+  - group_presence
+  - group_sample_size
+  - library_size_summary
+  - low_count_gene_summary
+  - batch_group_confounding
+primary_method:
+  name: DESeq2
+  status: placeholder
+  normalization: DESeq2_size_factor
+validation_methods:
+  - name: edgeR
+    status: placeholder
+  - name: limma_voom
+    status: placeholder
+output_artifacts:
+  - report.md
+  - evidence_package.json
+  - audit_log.json
+reliability_rules:
+  strong_conclusion_allowed_grades:
+    - A
+    - B
+  stop_conditions:
+    - unreadable_inputs
+    - missing_required_columns
+    - sample_id_mismatch
+    - negative_or_non_numeric_counts
+    - missing_contrast_groups
+  downgrade_conditions:
+    - low_group_sample_size
+    - batch_group_confounding
+    - non_integer_counts
+    - uneven_library_sizes
+    - missing_or_mock_validation
+

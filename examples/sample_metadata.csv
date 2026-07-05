@@ -1,0 +1,8 @@
+sample_id,group,batch,age
+S1,control,B1,34
+S2,control,B1,41
+S3,control,B2,36
+S4,treatment,B2,39
+S5,treatment,B3,45
+S6,treatment,B3,38
+

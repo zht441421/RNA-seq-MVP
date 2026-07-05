@@ -1,0 +1,21 @@
+{
+  "project_id": "proj_demo",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "count_matrix_file": "examples/sample_count_matrix.csv",
+  "metadata_file": "examples/sample_metadata.csv",
+  "sample_id_column": "sample_id",
+  "gene_id_column": "gene_id",
+  "group_column": "group",
+  "reference_group": "control",
+  "test_group": "treatment",
+  "batch_column": "batch",
+  "covariates": ["age"],
+  "organism": "human",
+  "gene_id_type": "symbol",
+  "annotation_version": "mock",
+  "fdr_threshold": 0.05,
+  "log2fc_threshold": 1.0,
+  "validation_methods": ["edgeR", "limma_voom"]
+}
+

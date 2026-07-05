@@ -1,0 +1,9 @@
+version: 1
+skills:
+  - id: bulk_rnaseq
+    name: Bulk RNA-seq Differential Expression
+    version: 0.1.0
+    path: bulk_rnaseq/skill.yaml
+    enabled: true
+    description: Phase 1 MVP skill for count matrix plus metadata differential expression orchestration.
+
