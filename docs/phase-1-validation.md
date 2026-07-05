@@ -1,17 +1,10 @@
-\# Phase 1 Validation Report
+# Phase 1 Validation Report
 
-
-
-\## Version
-
-
+## Version
 
 Tag:
 
-
-
 ```text
-
 phase-1-bulk-rnaseq-mvp
 
 
