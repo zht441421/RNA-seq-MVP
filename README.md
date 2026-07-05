@@ -1,3 +1,36 @@
+# RNA-seq MVP / Bioinformatics Agent
+
+This repository is the Phase 1 MVP of a bioinformatics-oriented multi-agent analysis platform.
+
+The long-term goal is to build a Coze-based bioinformatics analysis agent that can guide researchers through omics data analysis, execute reproducible workflows, perform quality control, validate results, and generate auditable reports.
+
+## Phase 1 Scope
+
+Current Phase 1 focuses on validating the basic Bulk RNA-seq MVP structure.
+
+The current version verifies:
+
+- Project repository structure
+- Bulk RNA-seq MVP workflow skeleton
+- Input data checking logic
+- Metadata and count matrix validation concept
+- Evidence package design
+- Audit log design
+- Reliability-first analysis principle
+
+## Core Principle
+
+This project prioritizes reliability over speed.
+
+The system should not directly generate strong biological conclusions unless the data quality, method selection, validation results, and reproducibility checks are sufficient.
+
+## Current Status
+
+Phase 1 has been validated and tagged as:
+
+```text
+phase-1-bulk-rnaseq-mvp
+
 # Bioinformatics Agent
 
 Backend skeleton for a Coze-based multi-omics bioinformatics agent platform.
