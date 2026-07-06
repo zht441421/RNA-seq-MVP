@@ -1,15 +1,9 @@
-﻿__pycache__/
+﻿.venv/
+__pycache__/
 *.pyc
-.pytest_cache/
-.venv/
-venv/
+.env
 
 .storage/
+acceptance_reports/
 artifacts/
 exports/
-acceptance_reports/
-
-.DS_Store
-Thumbs.db
-
-*.log
