@@ -117,3 +117,19 @@ class TaskReportResponse(BaseModel):
     sections: List[ReportSection]
     artifacts: List[Dict[str, Any]] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
+
+
+class TaskArtifact(BaseModel):
+    artifact_id: str
+    name: str
+    artifact_type: str
+    path: Optional[str] = None
+    description: str
+    available: bool = False
+
+
+class TaskArtifactsResponse(BaseModel):
+    task_id: str
+    status: str = "artifacts_placeholder_ready"
+    artifacts: List[TaskArtifact]
+    limitations: List[str] = Field(default_factory=list)

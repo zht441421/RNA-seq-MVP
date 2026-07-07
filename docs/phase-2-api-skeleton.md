@@ -19,6 +19,7 @@ The current backend is a small service scaffold intended to provide:
 - deterministic placeholder QC planning
 - deterministic placeholder task run completion
 - deterministic placeholder task report responses
+- deterministic placeholder artifact lists
 - a stable starting point for later Coze workflow integration
 
 It does not run real RNA-seq analysis yet.
@@ -278,6 +279,52 @@ Expected response example:
 }
 ```
 
+### GET `/task/{task_id}/artifacts`
+
+Returns a deterministic placeholder artifact list for the requested task ID.
+This endpoint is intended for Phase 2 API integration only and does not read,
+write, generate, or serve real artifact files.
+
+Expected response example:
+
+```json
+{
+  "task_id": "task_demo",
+  "status": "artifacts_placeholder_ready",
+  "artifacts": [
+    {
+      "artifact_id": "artifact_1",
+      "name": "qc_report_placeholder.md",
+      "artifact_type": "qc_report",
+      "path": null,
+      "description": "Placeholder QC report artifact. No file is generated yet.",
+      "available": false
+    },
+    {
+      "artifact_id": "artifact_2",
+      "name": "analysis_report_placeholder.md",
+      "artifact_type": "analysis_report",
+      "path": null,
+      "description": "Placeholder analysis report artifact. No file is generated yet.",
+      "available": false
+    },
+    {
+      "artifact_id": "artifact_3",
+      "name": "audit_log_placeholder.json",
+      "artifact_type": "audit_log",
+      "path": null,
+      "description": "Placeholder audit log artifact. No file is generated yet.",
+      "available": false
+    }
+  ],
+  "limitations": [
+    "This endpoint does not read or write real artifact files.",
+    "Artifact paths are placeholders and are not downloadable yet.",
+    "Real artifact generation will be implemented in a later phase."
+  ]
+}
+```
+
 ### GET `/task/{task_id}/status`
 
 Returns the current status of a previously created in-memory task.
@@ -410,6 +457,13 @@ cd "D:\coze agent\bioinformatics-agent"
 Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/report
 ```
 
+## Get Placeholder Artifacts
+
+```powershell
+cd "D:\coze agent\bioinformatics-agent"
+Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/artifacts
+```
+
 ## Check Task Status
 
 ```powershell
@@ -441,11 +495,16 @@ Invoke-RestMethod http://127.0.0.1:8010/task/task_xxx/status
 - The report endpoint does not run QC, DESeq2, edgeR, limma, or enrichment
   analysis.
 - The report endpoint does not support biological or statistical conclusions.
+- The artifacts endpoint returns placeholder artifact metadata only.
+- The artifacts endpoint does not read or write real artifact files.
+- The artifacts endpoint does not create files under artifacts, exports, or
+  storage directories.
+- Artifact paths are placeholders and are not downloadable yet.
 - No file upload API is implemented in this Phase 2 skeleton.
 - No database, object storage, queue, authentication, or authorization is wired
   into the task API.
 - The task API currently returns placeholder task status, analysis plans, QC
-  plans, run results, and report responses only.
+  plans, run results, report responses, and artifact lists only.
 
 ## Next Planned API Extensions
 
@@ -474,6 +533,8 @@ For the current skeleton:
   result.
 - Coze can call `GET /task/{task_id}/report` to request a deterministic
   placeholder report response.
+- Coze can call `GET /task/{task_id}/artifacts` to request a deterministic
+  placeholder artifact list.
 - Coze can call `GET /task/{task_id}/status` to poll task status.
 - The current API is not yet connected to real Bulk RNA-seq analysis.
 - Future Coze workflows should treat returned tasks as placeholders until

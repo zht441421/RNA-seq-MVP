@@ -7,13 +7,15 @@ from backend.app.models.task import (
     QCCheck,
     QCRequest,
     QCResponse,
+    ReportSection,
+    TaskArtifact,
+    TaskArtifactsResponse,
     TaskCreateRequest,
     TaskReportResponse,
     TaskResponse,
     TaskRunRequest,
     TaskRunResponse,
     TaskRunStep,
-    ReportSection,
 )
 from backend.app.services.task_service import create_task, get_task
 
@@ -207,6 +209,45 @@ def get_task_report(task_id: str) -> TaskReportResponse:
             "No input files are read.",
             "No QC, DESeq2, edgeR, limma, or enrichment analysis is executed.",
             "No biological conclusion should be drawn from this response.",
+        ],
+    )
+
+
+@router.get("/{task_id}/artifacts", response_model=TaskArtifactsResponse)
+def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
+    return TaskArtifactsResponse(
+        task_id=task_id,
+        status="artifacts_placeholder_ready",
+        artifacts=[
+            TaskArtifact(
+                artifact_id="artifact_1",
+                name="qc_report_placeholder.md",
+                artifact_type="qc_report",
+                path=None,
+                description="Placeholder QC report artifact. No file is generated yet.",
+                available=False,
+            ),
+            TaskArtifact(
+                artifact_id="artifact_2",
+                name="analysis_report_placeholder.md",
+                artifact_type="analysis_report",
+                path=None,
+                description="Placeholder analysis report artifact. No file is generated yet.",
+                available=False,
+            ),
+            TaskArtifact(
+                artifact_id="artifact_3",
+                name="audit_log_placeholder.json",
+                artifact_type="audit_log",
+                path=None,
+                description="Placeholder audit log artifact. No file is generated yet.",
+                available=False,
+            ),
+        ],
+        limitations=[
+            "This endpoint does not read or write real artifact files.",
+            "Artifact paths are placeholders and are not downloadable yet.",
+            "Real artifact generation will be implemented in a later phase.",
         ],
     )
 
