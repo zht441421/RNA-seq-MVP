@@ -20,6 +20,7 @@ The current backend is a small service scaffold intended to provide:
 - deterministic placeholder task run completion
 - deterministic placeholder task report responses
 - deterministic placeholder artifact lists
+- deterministic placeholder audit trails
 - a stable starting point for later Coze workflow integration
 
 It does not run real RNA-seq analysis yet.
@@ -325,6 +326,77 @@ Expected response example:
 }
 ```
 
+### GET `/task/{task_id}/audit`
+
+Returns a deterministic placeholder audit trail for the requested task ID. This
+endpoint is intended for Phase 2 API integration only and does not read
+persisted task history, log files, or durable audit storage.
+
+Expected response example:
+
+```json
+{
+  "task_id": "task_demo",
+  "status": "audit_placeholder_ready",
+  "events": [
+    {
+      "event_id": "audit_1",
+      "event_type": "task_created",
+      "message": "Placeholder task creation event.",
+      "timestamp": "placeholder_timestamp",
+      "actor": "system",
+      "metadata": {}
+    },
+    {
+      "event_id": "audit_2",
+      "event_type": "plan_generated",
+      "message": "Placeholder analysis plan generation event.",
+      "timestamp": "placeholder_timestamp",
+      "actor": "system",
+      "metadata": {}
+    },
+    {
+      "event_id": "audit_3",
+      "event_type": "qc_checked",
+      "message": "Placeholder QC checking event.",
+      "timestamp": "placeholder_timestamp",
+      "actor": "system",
+      "metadata": {}
+    },
+    {
+      "event_id": "audit_4",
+      "event_type": "run_placeholder_executed",
+      "message": "Placeholder task run event. No real RNA-seq analysis was performed.",
+      "timestamp": "placeholder_timestamp",
+      "actor": "system",
+      "metadata": {}
+    },
+    {
+      "event_id": "audit_5",
+      "event_type": "report_placeholder_generated",
+      "message": "Placeholder report generation event. No real report file was created.",
+      "timestamp": "placeholder_timestamp",
+      "actor": "system",
+      "metadata": {}
+    },
+    {
+      "event_id": "audit_6",
+      "event_type": "artifacts_placeholder_listed",
+      "message": "Placeholder artifact listing event. No real files were generated.",
+      "timestamp": "placeholder_timestamp",
+      "actor": "system",
+      "metadata": {}
+    }
+  ],
+  "limitations": [
+    "This endpoint does not read persisted task history.",
+    "Audit events are deterministic placeholders.",
+    "No database or durable audit storage is implemented yet.",
+    "Timestamps are placeholders and should not be treated as real execution times."
+  ]
+}
+```
+
 ### GET `/task/{task_id}/status`
 
 Returns the current status of a previously created in-memory task.
@@ -464,6 +536,13 @@ cd "D:\coze agent\bioinformatics-agent"
 Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/artifacts
 ```
 
+## Get a Placeholder Audit Trail
+
+```powershell
+cd "D:\coze agent\bioinformatics-agent"
+Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/audit
+```
+
 ## Check Task Status
 
 ```powershell
@@ -500,11 +579,18 @@ Invoke-RestMethod http://127.0.0.1:8010/task/task_xxx/status
 - The artifacts endpoint does not create files under artifacts, exports, or
   storage directories.
 - Artifact paths are placeholders and are not downloadable yet.
+- The audit endpoint returns deterministic placeholder events only.
+- The audit endpoint does not read persisted task history or log files.
+- The audit endpoint does not create files under logs, audit, storage,
+  artifacts, or exports directories.
+- No database or durable audit storage is implemented yet.
+- Audit timestamps are placeholders and should not be treated as real execution
+  times.
 - No file upload API is implemented in this Phase 2 skeleton.
 - No database, object storage, queue, authentication, or authorization is wired
   into the task API.
 - The task API currently returns placeholder task status, analysis plans, QC
-  plans, run results, report responses, and artifact lists only.
+  plans, run results, report responses, artifact lists, and audit trails only.
 
 ## Next Planned API Extensions
 
@@ -535,6 +621,8 @@ For the current skeleton:
   placeholder report response.
 - Coze can call `GET /task/{task_id}/artifacts` to request a deterministic
   placeholder artifact list.
+- Coze can call `GET /task/{task_id}/audit` to request a deterministic
+  placeholder audit trail.
 - Coze can call `GET /task/{task_id}/status` to poll task status.
 - The current API is not yet connected to real Bulk RNA-seq analysis.
 - Future Coze workflows should treat returned tasks as placeholders until

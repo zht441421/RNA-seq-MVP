@@ -4,12 +4,14 @@ from backend.app.models.task import (
     AnalysisPlanRequest,
     AnalysisPlanResponse,
     AnalysisStep,
+    AuditEvent,
     QCCheck,
     QCRequest,
     QCResponse,
     ReportSection,
     TaskArtifact,
     TaskArtifactsResponse,
+    TaskAuditResponse,
     TaskCreateRequest,
     TaskReportResponse,
     TaskResponse,
@@ -248,6 +250,79 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
             "This endpoint does not read or write real artifact files.",
             "Artifact paths are placeholders and are not downloadable yet.",
             "Real artifact generation will be implemented in a later phase.",
+        ],
+    )
+
+
+@router.get("/{task_id}/audit", response_model=TaskAuditResponse)
+def get_task_audit(task_id: str) -> TaskAuditResponse:
+    return TaskAuditResponse(
+        task_id=task_id,
+        status="audit_placeholder_ready",
+        events=[
+            AuditEvent(
+                event_id="audit_1",
+                event_type="task_created",
+                message="Placeholder task creation event.",
+                timestamp="placeholder_timestamp",
+                actor="system",
+                metadata={},
+            ),
+            AuditEvent(
+                event_id="audit_2",
+                event_type="plan_generated",
+                message="Placeholder analysis plan generation event.",
+                timestamp="placeholder_timestamp",
+                actor="system",
+                metadata={},
+            ),
+            AuditEvent(
+                event_id="audit_3",
+                event_type="qc_checked",
+                message="Placeholder QC checking event.",
+                timestamp="placeholder_timestamp",
+                actor="system",
+                metadata={},
+            ),
+            AuditEvent(
+                event_id="audit_4",
+                event_type="run_placeholder_executed",
+                message=(
+                    "Placeholder task run event. "
+                    "No real RNA-seq analysis was performed."
+                ),
+                timestamp="placeholder_timestamp",
+                actor="system",
+                metadata={},
+            ),
+            AuditEvent(
+                event_id="audit_5",
+                event_type="report_placeholder_generated",
+                message=(
+                    "Placeholder report generation event. "
+                    "No real report file was created."
+                ),
+                timestamp="placeholder_timestamp",
+                actor="system",
+                metadata={},
+            ),
+            AuditEvent(
+                event_id="audit_6",
+                event_type="artifacts_placeholder_listed",
+                message=(
+                    "Placeholder artifact listing event. "
+                    "No real files were generated."
+                ),
+                timestamp="placeholder_timestamp",
+                actor="system",
+                metadata={},
+            ),
+        ],
+        limitations=[
+            "This endpoint does not read persisted task history.",
+            "Audit events are deterministic placeholders.",
+            "No database or durable audit storage is implemented yet.",
+            "Timestamps are placeholders and should not be treated as real execution times.",
         ],
     )
 

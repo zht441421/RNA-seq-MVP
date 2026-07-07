@@ -133,3 +133,19 @@ class TaskArtifactsResponse(BaseModel):
     status: str = "artifacts_placeholder_ready"
     artifacts: List[TaskArtifact]
     limitations: List[str] = Field(default_factory=list)
+
+
+class AuditEvent(BaseModel):
+    event_id: str
+    event_type: str
+    message: str
+    timestamp: str
+    actor: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class TaskAuditResponse(BaseModel):
+    task_id: str
+    status: str = "audit_placeholder_ready"
+    events: List[AuditEvent]
+    limitations: List[str] = Field(default_factory=list)
