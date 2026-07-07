@@ -4,6 +4,9 @@ from backend.app.models.task import (
     AnalysisPlanRequest,
     AnalysisPlanResponse,
     AnalysisStep,
+    QCCheck,
+    QCRequest,
+    QCResponse,
     TaskCreateRequest,
     TaskResponse,
 )
@@ -70,6 +73,53 @@ def create_analysis_plan(request: AnalysisPlanRequest) -> AnalysisPlanResponse:
             "This is a deterministic placeholder plan for API integration only.",
             "No real DESeq2, edgeR, limma, or RNA-seq execution is performed by this endpoint.",
             "Future execution should validate files, metadata, design formula, and runtime environment before analysis.",
+        ],
+    )
+
+
+@router.post("/qc", response_model=QCResponse)
+def create_qc_plan(request: QCRequest) -> QCResponse:
+    return QCResponse(
+        project_name=request.project_name,
+        omics_type=request.omics_type,
+        input_level=request.input_level,
+        status="qc_planned",
+        qc_checks=[
+            QCCheck(
+                check_id="qc_1",
+                name="File availability check",
+                description="Confirm metadata and count matrix files are provided.",
+            ),
+            QCCheck(
+                check_id="qc_2",
+                name="Sample ID matching check",
+                description="Plan validation that sample IDs in metadata match count matrix columns.",
+            ),
+            QCCheck(
+                check_id="qc_3",
+                name="Group column check",
+                description="Plan validation that the group column exists and supports the requested contrast.",
+            ),
+            QCCheck(
+                check_id="qc_4",
+                name="Count matrix structure check",
+                description=(
+                    "Plan validation for gene-by-sample count matrix structure "
+                    "and numeric count values."
+                ),
+            ),
+        ],
+        reliability_gates=[
+            "metadata_file_provided",
+            "count_matrix_file_provided",
+            "sample_id_column_defined",
+            "group_column_defined",
+            "contrast_defined",
+        ],
+        limitations=[
+            "This endpoint currently returns a QC planning skeleton only.",
+            "No real file reading or count matrix validation is performed yet.",
+            "Actual QC execution will be implemented in a later phase.",
         ],
     )
 

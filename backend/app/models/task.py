@@ -47,3 +47,32 @@ class AnalysisPlanResponse(BaseModel):
     status: str = "planned"
     recommended_workflow: List[AnalysisStep]
     reliability_notes: List[str] = Field(default_factory=list)
+
+
+class QCRequest(BaseModel):
+    project_name: str
+    omics_type: str
+    input_level: str
+    metadata_file: str
+    count_matrix_file: str
+    sample_id_column: str
+    group_column: str
+    contrast: str
+
+
+class QCCheck(BaseModel):
+    check_id: str
+    name: str
+    description: str
+    status: str = "planned"
+    required: bool = True
+
+
+class QCResponse(BaseModel):
+    project_name: str
+    omics_type: str
+    input_level: str
+    status: str = "qc_planned"
+    qc_checks: List[QCCheck]
+    reliability_gates: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)

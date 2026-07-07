@@ -16,6 +16,7 @@ The current backend is a small service scaffold intended to provide:
 - placeholder task creation
 - placeholder task status lookup
 - deterministic placeholder analysis planning
+- deterministic placeholder QC planning
 - a stable starting point for later Coze workflow integration
 
 It does not run real RNA-seq analysis yet.
@@ -95,6 +96,80 @@ Expected response example:
     "This is a deterministic placeholder plan for API integration only.",
     "No real DESeq2, edgeR, limma, or RNA-seq execution is performed by this endpoint.",
     "Future execution should validate files, metadata, design formula, and runtime environment before analysis."
+  ]
+}
+```
+
+### POST `/task/qc`
+
+Creates a deterministic placeholder QC plan for a Bulk RNA-seq task request.
+This endpoint is intended for Phase 2 API integration only and does not read
+files, validate count matrices, or run RNA-seq QC.
+
+Request body:
+
+```json
+{
+  "project_name": "demo_bulk_rnaseq",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "metadata_file": "metadata.csv",
+  "count_matrix_file": "counts.csv",
+  "sample_id_column": "sample_id",
+  "group_column": "condition",
+  "contrast": "treatment_vs_control"
+}
+```
+
+Expected response example:
+
+```json
+{
+  "project_name": "demo_bulk_rnaseq",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "status": "qc_planned",
+  "qc_checks": [
+    {
+      "check_id": "qc_1",
+      "name": "File availability check",
+      "description": "Confirm metadata and count matrix files are provided.",
+      "status": "planned",
+      "required": true
+    },
+    {
+      "check_id": "qc_2",
+      "name": "Sample ID matching check",
+      "description": "Plan validation that sample IDs in metadata match count matrix columns.",
+      "status": "planned",
+      "required": true
+    },
+    {
+      "check_id": "qc_3",
+      "name": "Group column check",
+      "description": "Plan validation that the group column exists and supports the requested contrast.",
+      "status": "planned",
+      "required": true
+    },
+    {
+      "check_id": "qc_4",
+      "name": "Count matrix structure check",
+      "description": "Plan validation for gene-by-sample count matrix structure and numeric count values.",
+      "status": "planned",
+      "required": true
+    }
+  ],
+  "reliability_gates": [
+    "metadata_file_provided",
+    "count_matrix_file_provided",
+    "sample_id_column_defined",
+    "group_column_defined",
+    "contrast_defined"
+  ],
+  "limitations": [
+    "This endpoint currently returns a QC planning skeleton only.",
+    "No real file reading or count matrix validation is performed yet.",
+    "Actual QC execution will be implemented in a later phase."
   ]
 }
 ```
@@ -181,6 +256,28 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+## Create a QC Plan
+
+```powershell
+cd "D:\coze agent\bioinformatics-agent"
+$body = @{
+  project_name = "demo_bulk_rnaseq"
+  omics_type = "bulk_rnaseq"
+  input_level = "count_matrix"
+  metadata_file = "metadata.csv"
+  count_matrix_file = "counts.csv"
+  sample_id_column = "sample_id"
+  group_column = "condition"
+  contrast = "treatment_vs_control"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8010/task/qc `
+  -ContentType "application/json" `
+  -Body $body
+```
+
 ## Check Task Status
 
 ```powershell
@@ -199,10 +296,14 @@ Invoke-RestMethod http://127.0.0.1:8010/task/task_xxx/status
 - Tasks are stored only in memory.
 - Task state is lost when the server restarts.
 - No real RNA-seq analysis is executed.
+- The QC endpoint returns a planning skeleton only.
+- The QC endpoint does not read metadata or count matrix files yet.
+- The QC endpoint does not perform real Bulk RNA-seq QC yet.
 - No file upload API is implemented in this Phase 2 skeleton.
 - No database, object storage, queue, authentication, or authorization is wired
   into the task API.
-- The task API currently returns placeholder task status and analysis plans only.
+- The task API currently returns placeholder task status, analysis plans, and QC
+  plans only.
 
 ## Next Planned API Extensions
 
@@ -226,6 +327,7 @@ For the current skeleton:
 - Coze can call `POST /task/create` to create a placeholder task.
 - Coze can call `POST /task/plan` to request a deterministic placeholder
   analysis plan.
+- Coze can call `POST /task/qc` to request a deterministic placeholder QC plan.
 - Coze can call `GET /task/{task_id}/status` to poll task status.
 - The current API is not yet connected to real Bulk RNA-seq analysis.
 - Future Coze workflows should treat returned tasks as placeholders until
