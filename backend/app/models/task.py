@@ -25,6 +25,7 @@ class TaskRecord(TaskResponse):
 
 
 class AnalysisPlanRequest(BaseModel):
+    task_id: Optional[str] = None
     project_name: str
     omics_type: str
     input_level: str
@@ -41,6 +42,7 @@ class AnalysisStep(BaseModel):
 
 
 class AnalysisPlanResponse(BaseModel):
+    task_id: Optional[str] = None
     project_name: str
     omics_type: str
     input_level: str
@@ -50,6 +52,7 @@ class AnalysisPlanResponse(BaseModel):
 
 
 class QCRequest(BaseModel):
+    task_id: Optional[str] = None
     project_name: str
     omics_type: str
     input_level: str
@@ -69,6 +72,7 @@ class QCCheck(BaseModel):
 
 
 class QCResponse(BaseModel):
+    task_id: Optional[str] = None
     project_name: str
     omics_type: str
     input_level: str

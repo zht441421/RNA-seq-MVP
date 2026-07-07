@@ -31,13 +31,14 @@ def create_task_endpoint(request: TaskCreateRequest | None = None) -> TaskRespon
     return TaskResponse(task_id=task.task_id, status=task.status, message=task.message)
 
 
-@router.post("/plan", response_model=AnalysisPlanResponse)
+@router.post("/plan", response_model=AnalysisPlanResponse, response_model_exclude_none=True)
 def create_analysis_plan(request: AnalysisPlanRequest) -> AnalysisPlanResponse:
     group_column = request.group_column or "not specified"
     contrast = request.contrast or "not specified"
     analysis_goals = ", ".join(request.analysis_goal) if request.analysis_goal else "not specified"
 
     return AnalysisPlanResponse(
+        task_id=request.task_id,
         project_name=request.project_name,
         omics_type=request.omics_type,
         input_level=request.input_level,
@@ -86,9 +87,10 @@ def create_analysis_plan(request: AnalysisPlanRequest) -> AnalysisPlanResponse:
     )
 
 
-@router.post("/qc", response_model=QCResponse)
+@router.post("/qc", response_model=QCResponse, response_model_exclude_none=True)
 def create_qc_plan(request: QCRequest) -> QCResponse:
     return QCResponse(
+        task_id=request.task_id,
         project_name=request.project_name,
         omics_type=request.omics_type,
         input_level=request.input_level,

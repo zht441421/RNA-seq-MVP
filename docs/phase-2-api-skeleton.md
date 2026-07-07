@@ -38,11 +38,12 @@ front-end and Coze API contract sampling only:
 - `GET /task/{task_id}/audit`
 
 The lifecycle contract target is that each endpoint returns deterministic
-placeholder payloads and echoes the same `task_id` for a task lifecycle. Current
-`run`, `report`, `artifacts`, and `audit` responses echo `task_id`. Current
-`plan` and `qc` responses remain planning skeletons and do not define `task_id`
-in their response models yet; this is a documented Phase 2 contract gap for a
-future backend/model phase.
+placeholder payloads and echoes the same `task_id` for a task lifecycle.
+Phase 2.9 closes the earlier `plan`/`qc` lifecycle contract gap by allowing
+`POST /task/plan` and `POST /task/qc` requests to include an optional `task_id`
+and by echoing that value in their placeholder responses when supplied. This is
+still a skeleton contract field only; it does not create persistence, shared
+state, queueing, or real task execution.
 
 For all Phase 2 lifecycle endpoints, the current placeholder boundary is:
 
@@ -126,6 +127,7 @@ Request body:
 
 ```json
 {
+  "task_id": "task_demo",
   "project_name": "demo_bulk_rnaseq",
   "omics_type": "bulk_rnaseq",
   "input_level": "count_matrix",
@@ -139,6 +141,7 @@ Expected response example:
 
 ```json
 {
+  "task_id": "task_demo",
   "project_name": "demo_bulk_rnaseq",
   "omics_type": "bulk_rnaseq",
   "input_level": "count_matrix",
@@ -169,6 +172,7 @@ Request body:
 
 ```json
 {
+  "task_id": "task_demo",
   "project_name": "demo_bulk_rnaseq",
   "omics_type": "bulk_rnaseq",
   "input_level": "count_matrix",
@@ -184,6 +188,7 @@ Expected response example:
 
 ```json
 {
+  "task_id": "task_demo",
   "project_name": "demo_bulk_rnaseq",
   "omics_type": "bulk_rnaseq",
   "input_level": "count_matrix",
@@ -527,6 +532,7 @@ $task
 ```powershell
 cd "D:\coze agent\bioinformatics-agent"
 $body = @{
+  task_id = "task_demo"
   project_name = "demo_bulk_rnaseq"
   omics_type = "bulk_rnaseq"
   input_level = "count_matrix"
@@ -547,6 +553,7 @@ Invoke-RestMethod `
 ```powershell
 cd "D:\coze agent\bioinformatics-agent"
 $body = @{
+  task_id = "task_demo"
   project_name = "demo_bulk_rnaseq"
   omics_type = "bulk_rnaseq"
   input_level = "count_matrix"

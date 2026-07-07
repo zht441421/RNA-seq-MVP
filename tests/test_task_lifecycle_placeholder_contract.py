@@ -1,6 +1,5 @@
 import json
 
-import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
@@ -11,6 +10,7 @@ TASK_ID = "task_demo"
 
 def _plan_payload() -> dict[str, object]:
     return {
+        "task_id": TASK_ID,
         "project_name": "demo_bulk_rnaseq",
         "omics_type": "bulk_rnaseq",
         "input_level": "count_matrix",
@@ -22,6 +22,7 @@ def _plan_payload() -> dict[str, object]:
 
 def _qc_payload() -> dict[str, object]:
     return {
+        "task_id": TASK_ID,
         "project_name": "demo_bulk_rnaseq",
         "omics_type": "bulk_rnaseq",
         "input_level": "count_matrix",
@@ -106,21 +107,6 @@ def test_phase_2_placeholder_lifecycle_responses_are_bounded() -> None:
         _assert_no_runtime_leaks(body)
 
 
-def test_current_task_id_echo_scope_is_documented() -> None:
-    bodies = _phase_2_lifecycle_responses(TestClient(app))
-
-    assert "task_id" not in bodies["plan"]
-    assert "task_id" not in bodies["qc"]
-    assert bodies["run"]["task_id"] == TASK_ID
-    assert bodies["report"]["task_id"] == TASK_ID
-    assert bodies["artifacts"]["task_id"] == TASK_ID
-    assert bodies["audit"]["task_id"] == TASK_ID
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="Plan and QC response models do not yet echo task_id in the Phase 2 skeleton.",
-)
 def test_all_phase_2_lifecycle_endpoints_echo_task_id_contract() -> None:
     bodies = _phase_2_lifecycle_responses(TestClient(app))
 
