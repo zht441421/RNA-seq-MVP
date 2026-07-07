@@ -9,6 +9,9 @@ from backend.app.models.task import (
     QCResponse,
     TaskCreateRequest,
     TaskResponse,
+    TaskRunRequest,
+    TaskRunResponse,
+    TaskRunStep,
 )
 from backend.app.services.task_service import create_task, get_task
 
@@ -120,6 +123,41 @@ def create_qc_plan(request: QCRequest) -> QCResponse:
             "This endpoint currently returns a QC planning skeleton only.",
             "No real file reading or count matrix validation is performed yet.",
             "Actual QC execution will be implemented in a later phase.",
+        ],
+    )
+
+
+@router.post("/run", response_model=TaskRunResponse)
+def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
+    return TaskRunResponse(
+        task_id=request.task_id,
+        project_name=request.project_name,
+        status="run_placeholder_completed",
+        run_steps=[
+            TaskRunStep(
+                step_id="run_1",
+                name="Load task configuration",
+                status="completed",
+                message="Task configuration received.",
+            ),
+            TaskRunStep(
+                step_id="run_2",
+                name="QC execution placeholder",
+                status="completed",
+                message="QC execution is not implemented yet.",
+            ),
+            TaskRunStep(
+                step_id="run_3",
+                name="Differential expression placeholder",
+                status="completed",
+                message="DESeq2, edgeR, and limma execution are not implemented yet.",
+            ),
+        ],
+        artifacts=[],
+        limitations=[
+            "This endpoint does not run real RNA-seq analysis.",
+            "No files are read or written.",
+            "No statistical or biological conclusion should be drawn from this placeholder response.",
         ],
     )
 

@@ -76,3 +76,29 @@ class QCResponse(BaseModel):
     qc_checks: List[QCCheck]
     reliability_gates: List[str] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
+
+
+class TaskRunRequest(BaseModel):
+    task_id: str
+    project_name: str
+    omics_type: str
+    input_level: str
+    analysis_goal: List[str] = Field(default_factory=list)
+    group_column: Optional[str] = None
+    contrast: Optional[str] = None
+
+
+class TaskRunStep(BaseModel):
+    step_id: str
+    name: str
+    status: str
+    message: str
+
+
+class TaskRunResponse(BaseModel):
+    task_id: str
+    project_name: str
+    status: str = "run_placeholder_completed"
+    run_steps: List[TaskRunStep]
+    artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)

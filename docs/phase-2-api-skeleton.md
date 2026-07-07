@@ -17,6 +17,7 @@ The current backend is a small service scaffold intended to provide:
 - placeholder task status lookup
 - deterministic placeholder analysis planning
 - deterministic placeholder QC planning
+- deterministic placeholder task run completion
 - a stable starting point for later Coze workflow integration
 
 It does not run real RNA-seq analysis yet.
@@ -174,6 +175,62 @@ Expected response example:
 }
 ```
 
+### POST `/task/run`
+
+Returns a deterministic placeholder task run result. This endpoint is intended
+for Phase 2 API integration only and does not read files, write files, run QC,
+or execute DESeq2, edgeR, limma, FastQC, or MultiQC.
+
+Request body:
+
+```json
+{
+  "task_id": "task_demo",
+  "project_name": "demo_bulk_rnaseq",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "analysis_goal": ["qc", "differential_expression"],
+  "group_column": "condition",
+  "contrast": "treatment_vs_control"
+}
+```
+
+Expected response example:
+
+```json
+{
+  "task_id": "task_demo",
+  "project_name": "demo_bulk_rnaseq",
+  "status": "run_placeholder_completed",
+  "run_steps": [
+    {
+      "step_id": "run_1",
+      "name": "Load task configuration",
+      "status": "completed",
+      "message": "Task configuration received."
+    },
+    {
+      "step_id": "run_2",
+      "name": "QC execution placeholder",
+      "status": "completed",
+      "message": "QC execution is not implemented yet."
+    },
+    {
+      "step_id": "run_3",
+      "name": "Differential expression placeholder",
+      "status": "completed",
+      "message": "DESeq2, edgeR, and limma execution are not implemented yet."
+    }
+  ],
+  "artifacts": [],
+  "limitations": [
+    "This endpoint does not run real RNA-seq analysis.",
+    "No files are read or written.",
+    "No statistical or biological conclusion should be drawn from this placeholder response."
+  ]
+}
+```
+
 ### GET `/task/{task_id}/status`
 
 Returns the current status of a previously created in-memory task.
@@ -278,6 +335,27 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+## Run a Task Placeholder
+
+```powershell
+cd "D:\coze agent\bioinformatics-agent"
+$body = @{
+  task_id = "task_demo"
+  project_name = "demo_bulk_rnaseq"
+  omics_type = "bulk_rnaseq"
+  input_level = "count_matrix"
+  analysis_goal = @("qc", "differential_expression")
+  group_column = "condition"
+  contrast = "treatment_vs_control"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8010/task/run `
+  -ContentType "application/json" `
+  -Body $body
+```
+
 ## Check Task Status
 
 ```powershell
@@ -299,11 +377,15 @@ Invoke-RestMethod http://127.0.0.1:8010/task/task_xxx/status
 - The QC endpoint returns a planning skeleton only.
 - The QC endpoint does not read metadata or count matrix files yet.
 - The QC endpoint does not perform real Bulk RNA-seq QC yet.
+- The run endpoint returns a placeholder completion result only.
+- The run endpoint does not read or write files.
+- The run endpoint does not run DESeq2, edgeR, limma, FastQC, or MultiQC.
+- The run endpoint does not produce artifacts or biological conclusions.
 - No file upload API is implemented in this Phase 2 skeleton.
 - No database, object storage, queue, authentication, or authorization is wired
   into the task API.
-- The task API currently returns placeholder task status, analysis plans, and QC
-  plans only.
+- The task API currently returns placeholder task status, analysis plans, QC
+  plans, and run results only.
 
 ## Next Planned API Extensions
 
@@ -328,6 +410,8 @@ For the current skeleton:
 - Coze can call `POST /task/plan` to request a deterministic placeholder
   analysis plan.
 - Coze can call `POST /task/qc` to request a deterministic placeholder QC plan.
+- Coze can call `POST /task/run` to request a deterministic placeholder run
+  result.
 - Coze can call `GET /task/{task_id}/status` to poll task status.
 - The current API is not yet connected to real Bulk RNA-seq analysis.
 - Future Coze workflows should treat returned tasks as placeholders until
