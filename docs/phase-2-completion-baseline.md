@@ -103,8 +103,10 @@ Phase 3 should prepare real execution through safe incremental steps:
 Enter the correct working directory:
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 ```
+
+Replace `<repo-root>` with your local checkout path.
 
 Run the Phase 2 completion baseline documentation test:
 

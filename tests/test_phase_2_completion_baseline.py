@@ -26,6 +26,13 @@ KEY_TEST_FILES = (
     "tests/test_openapi_contract.py",
 )
 
+FORBIDDEN_LOCAL_PATH_FRAGMENTS = (
+    "c:\\",
+    "d:\\",
+    "/home/",
+    "/mnt/",
+)
+
 
 def test_phase_2_completion_baseline_doc_exists_and_defines_contract() -> None:
     repo_root = Path(__file__).resolve().parents[1]
@@ -49,3 +56,15 @@ def test_phase_2_completion_baseline_doc_exists_and_defines_contract() -> None:
 
     for test_file in KEY_TEST_FILES:
         assert test_file in text
+
+
+def test_phase_2_completion_baseline_doc_does_not_leak_local_paths() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    doc_path = repo_root / "docs" / "phase-2-completion-baseline.md"
+
+    text = doc_path.read_text(encoding="utf-8").lower()
+    leaked_fragments = [
+        fragment for fragment in FORBIDDEN_LOCAL_PATH_FRAGMENTS if fragment in text
+    ]
+
+    assert leaked_fragments == []

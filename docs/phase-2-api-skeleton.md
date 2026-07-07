@@ -490,7 +490,7 @@ If the task ID is unknown, the API returns `404`.
 First enter the correct working directory:
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 ```
 
 Install dependencies:
@@ -514,14 +514,14 @@ http://127.0.0.1:8010/docs
 ## Test `/health`
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 Invoke-RestMethod http://127.0.0.1:8010/health
 ```
 
 ## Create a Task
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 $task = Invoke-RestMethod `
   -Method Post `
   -Uri http://127.0.0.1:8010/task/create `
@@ -534,7 +534,7 @@ $task
 ## Create an Analysis Plan
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 $body = @{
   task_id = "task_demo"
   project_name = "demo_bulk_rnaseq"
@@ -555,7 +555,7 @@ Invoke-RestMethod `
 ## Create a QC Plan
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 $body = @{
   task_id = "task_demo"
   project_name = "demo_bulk_rnaseq"
@@ -578,7 +578,7 @@ Invoke-RestMethod `
 ## Run a Task Placeholder
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 $body = @{
   task_id = "task_demo"
   project_name = "demo_bulk_rnaseq"
@@ -599,28 +599,28 @@ Invoke-RestMethod `
 ## Get a Placeholder Report
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/report
 ```
 
 ## Get Placeholder Artifacts
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/artifacts
 ```
 
 ## Get a Placeholder Audit Trail
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/audit
 ```
 
 ## Check Task Status
 
 ```powershell
-cd "D:\coze agent\bioinformatics-agent"
+cd "<repo-root>"
 Invoke-RestMethod http://127.0.0.1:8010/task/$($task.task_id)/status
 ```
 
