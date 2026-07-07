@@ -67,6 +67,19 @@ Endpoint-specific placeholder boundaries:
 - `audit` returns deterministic placeholder events only, not persisted audit
   logs.
 
+## Phase 2.8 Error Contract
+
+Invalid request bodies currently return FastAPI/Pydantic `422` validation
+errors.
+
+Placeholder endpoints should not expose local paths, secrets, tokens, passwords,
+or traceback details.
+
+An empty path segment such as `/task//report` does not bind a `task_id`, so
+FastAPI returns `404 Not Found` before calling the placeholder report endpoint.
+
+This phase still does not implement real RNA-seq execution or persistence.
+
 ## Implemented Endpoints
 
 ### GET `/health`
