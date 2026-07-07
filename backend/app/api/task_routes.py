@@ -8,10 +8,12 @@ from backend.app.models.task import (
     QCRequest,
     QCResponse,
     TaskCreateRequest,
+    TaskReportResponse,
     TaskResponse,
     TaskRunRequest,
     TaskRunResponse,
     TaskRunStep,
+    ReportSection,
 )
 from backend.app.services.task_service import create_task, get_task
 
@@ -158,6 +160,53 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             "This endpoint does not run real RNA-seq analysis.",
             "No files are read or written.",
             "No statistical or biological conclusion should be drawn from this placeholder response.",
+        ],
+    )
+
+
+@router.get("/{task_id}/report", response_model=TaskReportResponse)
+def get_task_report(task_id: str) -> TaskReportResponse:
+    return TaskReportResponse(
+        task_id=task_id,
+        status="report_placeholder_ready",
+        summary="Placeholder report generated for API integration. No real RNA-seq analysis was performed.",
+        sections=[
+            ReportSection(
+                section_id="report_1",
+                title="Task Overview",
+                content="This placeholder report summarizes the submitted task configuration.",
+            ),
+            ReportSection(
+                section_id="report_2",
+                title="QC Summary",
+                content=(
+                    "QC execution is not implemented yet. "
+                    "This section is reserved for future QC results."
+                ),
+            ),
+            ReportSection(
+                section_id="report_3",
+                title="Analysis Summary",
+                content=(
+                    "Differential expression execution is not implemented yet. "
+                    "This section is reserved for future RNA-seq results."
+                ),
+            ),
+            ReportSection(
+                section_id="report_4",
+                title="Reliability Notes",
+                content=(
+                    "No biological or statistical conclusion should be drawn "
+                    "from this placeholder report."
+                ),
+            ),
+        ],
+        artifacts=[],
+        limitations=[
+            "This endpoint does not generate a real report file.",
+            "No input files are read.",
+            "No QC, DESeq2, edgeR, limma, or enrichment analysis is executed.",
+            "No biological conclusion should be drawn from this response.",
         ],
     )
 

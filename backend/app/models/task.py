@@ -102,3 +102,18 @@ class TaskRunResponse(BaseModel):
     run_steps: List[TaskRunStep]
     artifacts: List[Dict[str, Any]] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
+
+
+class ReportSection(BaseModel):
+    section_id: str
+    title: str
+    content: str
+
+
+class TaskReportResponse(BaseModel):
+    task_id: str
+    status: str = "report_placeholder_ready"
+    summary: str
+    sections: List[ReportSection]
+    artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)

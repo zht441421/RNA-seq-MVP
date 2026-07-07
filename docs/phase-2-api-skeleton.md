@@ -18,6 +18,7 @@ The current backend is a small service scaffold intended to provide:
 - deterministic placeholder analysis planning
 - deterministic placeholder QC planning
 - deterministic placeholder task run completion
+- deterministic placeholder task report responses
 - a stable starting point for later Coze workflow integration
 
 It does not run real RNA-seq analysis yet.
@@ -231,6 +232,52 @@ Expected response example:
 }
 ```
 
+### GET `/task/{task_id}/report`
+
+Returns a deterministic placeholder report for the requested task ID. This
+endpoint is intended for Phase 2 API integration only and does not generate a
+report file, read inputs, write artifacts, or run QC, differential expression,
+or enrichment analysis.
+
+Expected response example:
+
+```json
+{
+  "task_id": "task_demo",
+  "status": "report_placeholder_ready",
+  "summary": "Placeholder report generated for API integration. No real RNA-seq analysis was performed.",
+  "sections": [
+    {
+      "section_id": "report_1",
+      "title": "Task Overview",
+      "content": "This placeholder report summarizes the submitted task configuration."
+    },
+    {
+      "section_id": "report_2",
+      "title": "QC Summary",
+      "content": "QC execution is not implemented yet. This section is reserved for future QC results."
+    },
+    {
+      "section_id": "report_3",
+      "title": "Analysis Summary",
+      "content": "Differential expression execution is not implemented yet. This section is reserved for future RNA-seq results."
+    },
+    {
+      "section_id": "report_4",
+      "title": "Reliability Notes",
+      "content": "No biological or statistical conclusion should be drawn from this placeholder report."
+    }
+  ],
+  "artifacts": [],
+  "limitations": [
+    "This endpoint does not generate a real report file.",
+    "No input files are read.",
+    "No QC, DESeq2, edgeR, limma, or enrichment analysis is executed.",
+    "No biological conclusion should be drawn from this response."
+  ]
+}
+```
+
 ### GET `/task/{task_id}/status`
 
 Returns the current status of a previously created in-memory task.
@@ -356,6 +403,13 @@ Invoke-RestMethod `
   -Body $body
 ```
 
+## Get a Placeholder Report
+
+```powershell
+cd "D:\coze agent\bioinformatics-agent"
+Invoke-RestMethod http://127.0.0.1:8010/task/task_demo/report
+```
+
 ## Check Task Status
 
 ```powershell
@@ -381,11 +435,17 @@ Invoke-RestMethod http://127.0.0.1:8010/task/task_xxx/status
 - The run endpoint does not read or write files.
 - The run endpoint does not run DESeq2, edgeR, limma, FastQC, or MultiQC.
 - The run endpoint does not produce artifacts or biological conclusions.
+- The report endpoint returns a placeholder response only.
+- The report endpoint does not generate a real report file.
+- The report endpoint does not read input files or write artifacts.
+- The report endpoint does not run QC, DESeq2, edgeR, limma, or enrichment
+  analysis.
+- The report endpoint does not support biological or statistical conclusions.
 - No file upload API is implemented in this Phase 2 skeleton.
 - No database, object storage, queue, authentication, or authorization is wired
   into the task API.
 - The task API currently returns placeholder task status, analysis plans, QC
-  plans, and run results only.
+  plans, run results, and report responses only.
 
 ## Next Planned API Extensions
 
@@ -412,6 +472,8 @@ For the current skeleton:
 - Coze can call `POST /task/qc` to request a deterministic placeholder QC plan.
 - Coze can call `POST /task/run` to request a deterministic placeholder run
   result.
+- Coze can call `GET /task/{task_id}/report` to request a deterministic
+  placeholder report response.
 - Coze can call `GET /task/{task_id}/status` to poll task status.
 - The current API is not yet connected to real Bulk RNA-seq analysis.
 - Future Coze workflows should treat returned tasks as placeholders until
