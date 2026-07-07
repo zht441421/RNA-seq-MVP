@@ -8,6 +8,10 @@ Coze-based bioinformatics analysis agent.
 Phase 1 Bulk RNA-seq MVP work is complete and preserved separately. This Phase 2
 document describes only the current lightweight API skeleton.
 
+For the Phase 2 completion baseline, including the frozen endpoint inventory,
+test inventory, OpenAPI snapshot notes, placeholder limitations, and Phase 3
+direction, see [Phase 2 API Contract Baseline Completion](phase-2-completion-baseline.md).
+
 ## Backend Purpose
 
 The current backend is a small service scaffold intended to provide:
