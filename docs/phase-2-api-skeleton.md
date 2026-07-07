@@ -25,6 +25,48 @@ The current backend is a small service scaffold intended to provide:
 
 It does not run real RNA-seq analysis yet.
 
+## Phase 2 Placeholder Lifecycle Contract
+
+The current task lifecycle endpoints are placeholder/skeleton contracts for
+front-end and Coze API contract sampling only:
+
+- `POST /task/plan`
+- `POST /task/qc`
+- `POST /task/run`
+- `GET /task/{task_id}/report`
+- `GET /task/{task_id}/artifacts`
+- `GET /task/{task_id}/audit`
+
+The lifecycle contract target is that each endpoint returns deterministic
+placeholder payloads and echoes the same `task_id` for a task lifecycle. Current
+`run`, `report`, `artifacts`, and `audit` responses echo `task_id`. Current
+`plan` and `qc` responses remain planning skeletons and do not define `task_id`
+in their response models yet; this is a documented Phase 2 contract gap for a
+future backend/model phase.
+
+For all Phase 2 lifecycle endpoints, the current placeholder boundary is:
+
+- no real input files are read
+- no real log files are written
+- no database or durable task/audit storage is written
+- no real artifacts are generated
+- no real Coze call is made
+- no RNA-seq pipeline is run
+- responses are deterministic contract samples, not evidence that a real task
+  executed
+
+Endpoint-specific placeholder boundaries:
+
+- `plan` does not execute a real planning engine.
+- `qc` does not read real QC files, metadata files, or count matrices.
+- `run` does not start a real runner.
+- `report` returns placeholder report information only, not a generated real
+  report.
+- `artifacts` returns placeholder artifact metadata only, not real filesystem
+  outputs.
+- `audit` returns deterministic placeholder events only, not persisted audit
+  logs.
+
 ## Implemented Endpoints
 
 ### GET `/health`
