@@ -15,6 +15,7 @@ The current backend is a small service scaffold intended to provide:
 - a health check endpoint for deployment and local validation
 - placeholder task creation
 - placeholder task status lookup
+- deterministic placeholder analysis planning
 - a stable starting point for later Coze workflow integration
 
 It does not run real RNA-seq analysis yet.
@@ -55,6 +56,49 @@ Expected response example:
 }
 ```
 
+### POST `/task/plan`
+
+Creates a deterministic placeholder analysis plan. This endpoint is intended
+for Phase 2 API integration only and does not run DESeq2, edgeR, limma, or any
+RNA-seq computation.
+
+Request body:
+
+```json
+{
+  "project_name": "demo_bulk_rnaseq",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "analysis_goal": ["qc", "differential_expression"],
+  "group_column": "condition",
+  "contrast": "treatment_vs_control"
+}
+```
+
+Expected response example:
+
+```json
+{
+  "project_name": "demo_bulk_rnaseq",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "status": "planned",
+  "recommended_workflow": [
+    {
+      "order": 1,
+      "name": "Input review",
+      "description": "Confirm project 'demo_bulk_rnaseq' uses bulk_rnaseq data at the count_matrix level.",
+      "status": "planned"
+    }
+  ],
+  "reliability_notes": [
+    "This is a deterministic placeholder plan for API integration only.",
+    "No real DESeq2, edgeR, limma, or RNA-seq execution is performed by this endpoint.",
+    "Future execution should validate files, metadata, design formula, and runtime environment before analysis."
+  ]
+}
+```
+
 ### GET `/task/{task_id}/status`
 
 Returns the current status of a previously created in-memory task.
@@ -88,20 +132,20 @@ pip install -r requirements.txt
 Start the FastAPI server:
 
 ```powershell
-uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8010
 ```
 
 Open the interactive API documentation:
 
 ```text
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8010/docs
 ```
 
 ## Test `/health`
 
 ```powershell
 cd "D:\coze agent\bioinformatics-agent"
-Invoke-RestMethod http://127.0.0.1:8000/health
+Invoke-RestMethod http://127.0.0.1:8010/health
 ```
 
 ## Create a Task
@@ -110,24 +154,44 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 cd "D:\coze agent\bioinformatics-agent"
 $task = Invoke-RestMethod `
   -Method Post `
-  -Uri http://127.0.0.1:8000/task/create `
+  -Uri http://127.0.0.1:8010/task/create `
   -ContentType "application/json" `
   -Body '{}'
 
 $task
 ```
 
+## Create an Analysis Plan
+
+```powershell
+cd "D:\coze agent\bioinformatics-agent"
+$body = @{
+  project_name = "demo_bulk_rnaseq"
+  omics_type = "bulk_rnaseq"
+  input_level = "count_matrix"
+  analysis_goal = @("qc", "differential_expression")
+  group_column = "condition"
+  contrast = "treatment_vs_control"
+} | ConvertTo-Json
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8010/task/plan `
+  -ContentType "application/json" `
+  -Body $body
+```
+
 ## Check Task Status
 
 ```powershell
 cd "D:\coze agent\bioinformatics-agent"
-Invoke-RestMethod http://127.0.0.1:8000/task/$($task.task_id)/status
+Invoke-RestMethod http://127.0.0.1:8010/task/$($task.task_id)/status
 ```
 
 Or replace the task ID manually:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8000/task/task_xxx/status
+Invoke-RestMethod http://127.0.0.1:8010/task/task_xxx/status
 ```
 
 ## Current Limitations
@@ -138,13 +202,12 @@ Invoke-RestMethod http://127.0.0.1:8000/task/task_xxx/status
 - No file upload API is implemented in this Phase 2 skeleton.
 - No database, object storage, queue, authentication, or authorization is wired
   into the task API.
-- The task API currently returns placeholder status only.
+- The task API currently returns placeholder task status and analysis plans only.
 
 ## Next Planned API Extensions
 
 Likely next API additions include:
 
-- task request schema for analysis type and input metadata
 - file registration or upload endpoints
 - persistent task storage
 - task queue integration
@@ -161,6 +224,8 @@ For the current skeleton:
 
 - Coze can call `GET /health` to verify backend availability.
 - Coze can call `POST /task/create` to create a placeholder task.
+- Coze can call `POST /task/plan` to request a deterministic placeholder
+  analysis plan.
 - Coze can call `GET /task/{task_id}/status` to poll task status.
 - The current API is not yet connected to real Bulk RNA-seq analysis.
 - Future Coze workflows should treat returned tasks as placeholders until
