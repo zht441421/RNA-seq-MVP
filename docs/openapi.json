@@ -1069,7 +1069,13 @@
       "TaskStatus": {
         "type": "string",
         "enum": [
-          "created"
+          "created",
+          "planned",
+          "qc_placeholder_ready",
+          "run_placeholder_ready",
+          "report_placeholder_ready",
+          "artifacts_placeholder_ready",
+          "audit_placeholder_ready"
         ],
         "title": "TaskStatus"
       },

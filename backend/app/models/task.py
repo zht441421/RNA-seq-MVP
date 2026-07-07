@@ -6,6 +6,12 @@ from pydantic import BaseModel, Field
 
 class TaskStatus(str, Enum):
     CREATED = "created"
+    PLANNED = "planned"
+    QC_PLACEHOLDER_READY = "qc_placeholder_ready"
+    RUN_PLACEHOLDER_READY = "run_placeholder_ready"
+    REPORT_PLACEHOLDER_READY = "report_placeholder_ready"
+    ARTIFACTS_PLACEHOLDER_READY = "artifacts_placeholder_ready"
+    AUDIT_PLACEHOLDER_READY = "audit_placeholder_ready"
 
 
 class TaskCreateRequest(BaseModel):
@@ -19,8 +25,19 @@ class TaskResponse(BaseModel):
     message: str
 
 
+class TaskLifecycleEvent(BaseModel):
+    event_type: str
+    message: str
+    actor: str
+
+
 class TaskRecord(TaskResponse):
     task_type: str
+    project_name: str
+    omics_type: str
+    created_at: str
+    updated_at: str
+    lifecycle_events: List[TaskLifecycleEvent] = Field(default_factory=list)
     parameters: Dict[str, Any] = Field(default_factory=dict)
 
 
