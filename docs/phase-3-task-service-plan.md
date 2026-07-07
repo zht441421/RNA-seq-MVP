@@ -8,6 +8,8 @@ FastAPI task API. The goal is to make `POST /task/create` and
 preserving the Phase 2 API paths and placeholder analysis boundary.
 
 This phase does not implement real RNA-seq analysis.
+It also does not call real Coze services, run Snakemake, write log files, or
+create real artifacts.
 
 ## In-Memory Registry Behavior
 
@@ -80,7 +82,10 @@ shape. If the task does not exist, it returns a deterministic `404` response:
 - No real biological input/output files are read or written.
 - No artifact files are created.
 - No database persistence is implemented.
+- No log files are written.
 - No durable audit log is implemented.
+- No real Coze service is called.
+- No Snakemake workflow is run.
 - `POST /task/plan`, `POST /task/qc`, `POST /task/run`,
   `GET /task/{task_id}/report`, `GET /task/{task_id}/artifacts`, and
   `GET /task/{task_id}/audit` are not yet wired to mutate registry state.
@@ -93,3 +98,5 @@ shape. If the task does not exist, it returns a deterministic `404` response:
 - Introduce an execution adapter interface with mock and dry-run backends first.
 - Only later integrate real RNA-seq tools after state, validation, artifact,
   and execution adapter contracts are tested.
+- Any production execution path must be designed separately with controlled
+  runner, worker, and persistence boundaries.
