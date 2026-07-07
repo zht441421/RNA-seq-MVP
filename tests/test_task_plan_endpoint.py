@@ -1,11 +1,22 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
+from backend.app.services.task_registry import reset_registry
+
+
+@pytest.fixture(autouse=True)
+def isolated_registry():
+    reset_registry()
+    yield
+    reset_registry()
 
 
 def test_task_plan_returns_placeholder_analysis_plan() -> None:
+    client = TestClient(app)
+    created = client.post("/task/create", json={}).json()
     payload = {
-        "task_id": "task_demo",
+        "task_id": created["task_id"],
         "project_name": "demo_bulk_rnaseq",
         "omics_type": "bulk_rnaseq",
         "input_level": "count_matrix",
@@ -14,12 +25,11 @@ def test_task_plan_returns_placeholder_analysis_plan() -> None:
         "contrast": "treatment_vs_control",
     }
 
-    client = TestClient(app)
     response = client.post("/task/plan", json=payload)
 
     assert response.status_code == 200
     body = response.json()
-    assert body["task_id"] == "task_demo"
+    assert body["task_id"] == created["task_id"]
     assert body["project_name"] == "demo_bulk_rnaseq"
     assert body["omics_type"] == "bulk_rnaseq"
     assert body["input_level"] == "count_matrix"

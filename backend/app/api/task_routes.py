@@ -18,11 +18,28 @@ from backend.app.models.task import (
     TaskRunRequest,
     TaskRunResponse,
     TaskRunStep,
+    TaskStatus,
 )
-from backend.app.services.task_service import create_task, get_task
+from backend.app.services.task_service import create_task, get_task, update_task_status
 
 
 router = APIRouter(prefix="/task", tags=["task"])
+
+
+def _update_registry_status_or_404(
+    task_id: str,
+    status: TaskStatus,
+    event_type: str,
+    message: str,
+) -> None:
+    task = update_task_status(
+        task_id=task_id,
+        status=status,
+        event_type=event_type,
+        message=message,
+    )
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
 
 
 @router.post("/create", response_model=TaskResponse)
@@ -33,6 +50,14 @@ def create_task_endpoint(request: TaskCreateRequest | None = None) -> TaskRespon
 
 @router.post("/plan", response_model=AnalysisPlanResponse, response_model_exclude_none=True)
 def create_analysis_plan(request: AnalysisPlanRequest) -> AnalysisPlanResponse:
+    if request.task_id is not None:
+        _update_registry_status_or_404(
+            task_id=request.task_id,
+            status=TaskStatus.PLANNED,
+            event_type="plan_generated",
+            message="Placeholder analysis plan generated and task status updated.",
+        )
+
     group_column = request.group_column or "not specified"
     contrast = request.contrast or "not specified"
     analysis_goals = ", ".join(request.analysis_goal) if request.analysis_goal else "not specified"
@@ -89,6 +114,14 @@ def create_analysis_plan(request: AnalysisPlanRequest) -> AnalysisPlanResponse:
 
 @router.post("/qc", response_model=QCResponse, response_model_exclude_none=True)
 def create_qc_plan(request: QCRequest) -> QCResponse:
+    if request.task_id is not None:
+        _update_registry_status_or_404(
+            task_id=request.task_id,
+            status=TaskStatus.QC_PLACEHOLDER_READY,
+            event_type="qc_checked",
+            message="Placeholder QC checks generated and task status updated.",
+        )
+
     return QCResponse(
         task_id=request.task_id,
         project_name=request.project_name,
@@ -137,6 +170,16 @@ def create_qc_plan(request: QCRequest) -> QCResponse:
 
 @router.post("/run", response_model=TaskRunResponse)
 def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
+    _update_registry_status_or_404(
+        task_id=request.task_id,
+        status=TaskStatus.RUN_PLACEHOLDER_READY,
+        event_type="run_placeholder_executed",
+        message=(
+            "Placeholder run executed and task status updated. "
+            "No real RNA-seq analysis was performed."
+        ),
+    )
+
     return TaskRunResponse(
         task_id=request.task_id,
         project_name=request.project_name,

@@ -1,16 +1,22 @@
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
+from backend.app.services.task_registry import reset_registry
 
 
-TASK_ID = "task_demo"
+@pytest.fixture(autouse=True)
+def isolated_registry():
+    reset_registry()
+    yield
+    reset_registry()
 
 
-def _plan_payload() -> dict[str, object]:
+def _plan_payload(task_id: str) -> dict[str, object]:
     return {
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "project_name": "demo_bulk_rnaseq",
         "omics_type": "bulk_rnaseq",
         "input_level": "count_matrix",
@@ -20,9 +26,9 @@ def _plan_payload() -> dict[str, object]:
     }
 
 
-def _qc_payload() -> dict[str, object]:
+def _qc_payload(task_id: str) -> dict[str, object]:
     return {
-        "task_id": TASK_ID,
+        "task_id": task_id,
         "project_name": "demo_bulk_rnaseq",
         "omics_type": "bulk_rnaseq",
         "input_level": "count_matrix",
@@ -34,20 +40,22 @@ def _qc_payload() -> dict[str, object]:
     }
 
 
-def _run_payload() -> dict[str, object]:
-    payload = _plan_payload()
-    payload["task_id"] = TASK_ID
-    return payload
+def _run_payload(task_id: str) -> dict[str, object]:
+    return _plan_payload(task_id)
 
 
 def _phase_2_lifecycle_responses(client: TestClient) -> dict[str, dict[str, object]]:
+    create_response = client.post("/task/create", json={})
+    assert create_response.status_code == 200
+    task_id = create_response.json()["task_id"]
+
     responses = {
-        "plan": client.post("/task/plan", json=_plan_payload()),
-        "qc": client.post("/task/qc", json=_qc_payload()),
-        "run": client.post("/task/run", json=_run_payload()),
-        "report": client.get(f"/task/{TASK_ID}/report"),
-        "artifacts": client.get(f"/task/{TASK_ID}/artifacts"),
-        "audit": client.get(f"/task/{TASK_ID}/audit"),
+        "plan": client.post("/task/plan", json=_plan_payload(task_id)),
+        "qc": client.post("/task/qc", json=_qc_payload(task_id)),
+        "run": client.post("/task/run", json=_run_payload(task_id)),
+        "report": client.get(f"/task/{task_id}/report"),
+        "artifacts": client.get(f"/task/{task_id}/artifacts"),
+        "audit": client.get(f"/task/{task_id}/audit"),
     }
 
     bodies: dict[str, dict[str, object]] = {}
@@ -109,6 +117,7 @@ def test_phase_2_placeholder_lifecycle_responses_are_bounded() -> None:
 
 def test_all_phase_2_lifecycle_endpoints_echo_task_id_contract() -> None:
     bodies = _phase_2_lifecycle_responses(TestClient(app))
+    task_id = bodies["plan"]["task_id"]
 
     for body in bodies.values():
-        assert body["task_id"] == TASK_ID
+        assert body["task_id"] == task_id

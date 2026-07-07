@@ -23,6 +23,12 @@ def _timestamp_for_task(task_number: int) -> str:
     return timestamp.isoformat().replace("+00:00", "Z")
 
 
+def _timestamp_for_task_event(task: TaskRecord) -> str:
+    created_at = datetime.fromisoformat(task.created_at.replace("Z", "+00:00"))
+    timestamp = created_at + timedelta(seconds=max(len(task.lifecycle_events) - 1, 0))
+    return timestamp.isoformat().replace("+00:00", "Z")
+
+
 def _string_parameter(parameters: dict[str, Any], key: str, default: str) -> str:
     value = parameters.get(key)
     if isinstance(value, str) and value.strip():
@@ -64,6 +70,51 @@ def create_task(request: TaskCreateRequest | None = None) -> TaskRecord:
 
 def get_task(task_id: str) -> TaskRecord | None:
     return _TASKS.get(task_id)
+
+
+def append_lifecycle_event(
+    task_id: str,
+    event_type: str,
+    message: str,
+    actor: str = "system",
+    metadata: dict[str, Any] | None = None,
+) -> TaskRecord | None:
+    task = get_task(task_id)
+    if task is None:
+        return None
+
+    task.lifecycle_events.append(
+        TaskLifecycleEvent(
+            event_type=event_type,
+            message=message,
+            actor=actor,
+            metadata=metadata or {},
+        )
+    )
+    task.updated_at = _timestamp_for_task_event(task)
+    return task
+
+
+def update_task_status(
+    task_id: str,
+    status: TaskStatus | str,
+    event_type: str,
+    message: str,
+    metadata: dict[str, Any] | None = None,
+) -> TaskRecord | None:
+    task = get_task(task_id)
+    if task is None:
+        return None
+
+    task.status = TaskStatus(status)
+    task.message = message
+    return append_lifecycle_event(
+        task_id=task_id,
+        event_type=event_type,
+        message=message,
+        actor="system",
+        metadata=metadata,
+    )
 
 
 def list_tasks() -> list[TaskRecord]:

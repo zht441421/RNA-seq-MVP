@@ -75,6 +75,47 @@ shape. If the task does not exist, it returns a deterministic `404` response:
 }
 ```
 
+## Phase 3.2 Registry-Backed Placeholder Transitions
+
+Phase 3.2 wires the existing `POST /task/plan`, `POST /task/qc`, and
+`POST /task/run` placeholder endpoints to the in-memory registry lifecycle when
+a request supplies a `task_id`.
+
+The endpoints still return the existing placeholder response shapes. The
+registry-backed behavior is:
+
+- `POST /task/plan` with a known `task_id` updates the task status to
+  `planned` and appends `plan_generated`.
+- `POST /task/qc` with a known `task_id` updates the task status to
+  `qc_placeholder_ready` and appends `qc_checked`.
+- `POST /task/run` with a known `task_id` updates the task status to
+  `run_placeholder_ready` and appends `run_placeholder_executed`.
+
+`POST /task/plan` and `POST /task/qc` keep compatibility for requests that do
+not include `task_id`: they return the same deterministic placeholder response
+without mutating registry state. `POST /task/run` requires `task_id` as before.
+
+If a request supplies a `task_id` that is not present in the registry, these
+registry-backed transitions return a deterministic `404` response:
+
+```json
+{
+  "detail": "Task not found: task_missing"
+}
+```
+
+These transitions are process-local and in-memory only. They do not provide
+durable persistence, a queue, a worker, artifact storage, or a durable audit
+log. They also do not run real RNA-seq computation: no DESeq2, edgeR, limma,
+FastQC, MultiQC, enrichment analysis, Snakemake, Nextflow, Coze service call, or
+biological file I/O is performed.
+
+`GET /task/{task_id}/status` now reflects the latest registry-backed status
+after plan, QC, and run placeholder transitions. `GET /task/{task_id}/report`,
+`GET /task/{task_id}/artifacts`, and `GET /task/{task_id}/audit` remain
+deterministic placeholder responses and are not fully wired to registry
+transition history yet.
+
 ## Known Limitations
 
 - No real RNA-seq execution is implemented.
@@ -86,13 +127,12 @@ shape. If the task does not exist, it returns a deterministic `404` response:
 - No durable audit log is implemented.
 - No real Coze service is called.
 - No Snakemake workflow is run.
-- `POST /task/plan`, `POST /task/qc`, `POST /task/run`,
-  `GET /task/{task_id}/report`, `GET /task/{task_id}/artifacts`, and
-  `GET /task/{task_id}/audit` are not yet wired to mutate registry state.
+- `GET /task/{task_id}/report`, `GET /task/{task_id}/artifacts`, and
+  `GET /task/{task_id}/audit` are not yet wired to registry transition history.
 
 ## Next Recommended Phases
 
-- Wire plan, QC, and run endpoints to registry status transitions.
+- Wire report, artifacts, and audit responses to registry-backed task history.
 - Define the input file validation contract before reading any real files.
 - Define the output artifact directory contract before creating artifacts.
 - Introduce an execution adapter interface with mock and dry-run backends first.
