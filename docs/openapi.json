@@ -1,0 +1,1118 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bioinformatics Agent Backend",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/task/create": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Create Task Endpoint",
+        "operationId": "create_task_endpoint_task_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TaskCreateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/plan": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Create Analysis Plan",
+        "operationId": "create_analysis_plan_task_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisPlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/qc": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Create Qc Plan",
+        "operationId": "create_qc_plan_task_qc_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QCRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QCResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/run": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Run Task Placeholder",
+        "operationId": "run_task_placeholder_task_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{task_id}/report": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Get Task Report",
+        "operationId": "get_task_report_task__task_id__report_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{task_id}/artifacts": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Get Task Artifacts",
+        "operationId": "get_task_artifacts_task__task_id__artifacts_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskArtifactsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{task_id}/audit": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Get Task Audit",
+        "operationId": "get_task_audit_task__task_id__audit_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAuditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{task_id}/status": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Get Task Status",
+        "operationId": "get_task_status_task__task_id__status_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisPlanRequest": {
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "omics_type": {
+            "type": "string",
+            "title": "Omics Type"
+          },
+          "input_level": {
+            "type": "string",
+            "title": "Input Level"
+          },
+          "analysis_goal": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Analysis Goal"
+          },
+          "group_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Column"
+          },
+          "contrast": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level"
+        ],
+        "title": "AnalysisPlanRequest"
+      },
+      "AnalysisPlanResponse": {
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "omics_type": {
+            "type": "string",
+            "title": "Omics Type"
+          },
+          "input_level": {
+            "type": "string",
+            "title": "Input Level"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "planned"
+          },
+          "recommended_workflow": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisStep"
+            },
+            "type": "array",
+            "title": "Recommended Workflow"
+          },
+          "reliability_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reliability Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level",
+          "recommended_workflow"
+        ],
+        "title": "AnalysisPlanResponse"
+      },
+      "AnalysisStep": {
+        "properties": {
+          "order": {
+            "type": "integer",
+            "title": "Order"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "planned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order",
+          "name",
+          "description"
+        ],
+        "title": "AnalysisStep"
+      },
+      "AuditEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "event_type",
+          "message",
+          "timestamp",
+          "actor"
+        ],
+        "title": "AuditEvent"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "QCCheck": {
+        "properties": {
+          "check_id": {
+            "type": "string",
+            "title": "Check Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "planned"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "check_id",
+          "name",
+          "description"
+        ],
+        "title": "QCCheck"
+      },
+      "QCRequest": {
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "omics_type": {
+            "type": "string",
+            "title": "Omics Type"
+          },
+          "input_level": {
+            "type": "string",
+            "title": "Input Level"
+          },
+          "metadata_file": {
+            "type": "string",
+            "title": "Metadata File"
+          },
+          "count_matrix_file": {
+            "type": "string",
+            "title": "Count Matrix File"
+          },
+          "sample_id_column": {
+            "type": "string",
+            "title": "Sample Id Column"
+          },
+          "group_column": {
+            "type": "string",
+            "title": "Group Column"
+          },
+          "contrast": {
+            "type": "string",
+            "title": "Contrast"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level",
+          "metadata_file",
+          "count_matrix_file",
+          "sample_id_column",
+          "group_column",
+          "contrast"
+        ],
+        "title": "QCRequest"
+      },
+      "QCResponse": {
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "omics_type": {
+            "type": "string",
+            "title": "Omics Type"
+          },
+          "input_level": {
+            "type": "string",
+            "title": "Input Level"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "qc_planned"
+          },
+          "qc_checks": {
+            "items": {
+              "$ref": "#/components/schemas/QCCheck"
+            },
+            "type": "array",
+            "title": "Qc Checks"
+          },
+          "reliability_gates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reliability Gates"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level",
+          "qc_checks"
+        ],
+        "title": "QCResponse"
+      },
+      "ReportSection": {
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "title": "Section Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "section_id",
+          "title",
+          "content"
+        ],
+        "title": "ReportSection"
+      },
+      "TaskArtifact": {
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "title": "Artifact Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "artifact_type": {
+            "type": "string",
+            "title": "Artifact Type"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "artifact_id",
+          "name",
+          "artifact_type",
+          "description"
+        ],
+        "title": "TaskArtifact"
+      },
+      "TaskArtifactsResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "artifacts_placeholder_ready"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/TaskArtifact"
+            },
+            "type": "array",
+            "title": "Artifacts"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "artifacts"
+        ],
+        "title": "TaskArtifactsResponse"
+      },
+      "TaskAuditResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "audit_placeholder_ready"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "events"
+        ],
+        "title": "TaskAuditResponse"
+      },
+      "TaskCreateRequest": {
+        "properties": {
+          "task_type": {
+            "type": "string",
+            "title": "Task Type",
+            "default": "placeholder"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters"
+          }
+        },
+        "type": "object",
+        "title": "TaskCreateRequest"
+      },
+      "TaskReportResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "report_placeholder_ready"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "artifacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Artifacts"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "summary",
+          "sections"
+        ],
+        "title": "TaskReportResponse"
+      },
+      "TaskResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "status",
+          "message"
+        ],
+        "title": "TaskResponse"
+      },
+      "TaskRunRequest": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "omics_type": {
+            "type": "string",
+            "title": "Omics Type"
+          },
+          "input_level": {
+            "type": "string",
+            "title": "Input Level"
+          },
+          "analysis_goal": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Analysis Goal"
+          },
+          "group_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Column"
+          },
+          "contrast": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "project_name",
+          "omics_type",
+          "input_level"
+        ],
+        "title": "TaskRunRequest"
+      },
+      "TaskRunResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "run_placeholder_completed"
+          },
+          "run_steps": {
+            "items": {
+              "$ref": "#/components/schemas/TaskRunStep"
+            },
+            "type": "array",
+            "title": "Run Steps"
+          },
+          "artifacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Artifacts"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "project_name",
+          "run_steps"
+        ],
+        "title": "TaskRunResponse"
+      },
+      "TaskRunStep": {
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "title": "Step Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_id",
+          "name",
+          "status",
+          "message"
+        ],
+        "title": "TaskRunStep"
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "created"
+        ],
+        "title": "TaskStatus"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
