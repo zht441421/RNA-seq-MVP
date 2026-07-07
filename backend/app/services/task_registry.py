@@ -12,6 +12,14 @@ from backend.app.models.task import (
 _TASKS: dict[str, TaskRecord] = {}
 _NEXT_TASK_NUMBER = 1
 _BASE_TIMESTAMP = datetime(2026, 1, 1, tzinfo=timezone.utc)
+_ALLOWED_STATUS_TRANSITIONS: dict[TaskStatus, TaskStatus] = {
+    TaskStatus.CREATED: TaskStatus.PLANNED,
+    TaskStatus.PLANNED: TaskStatus.QC_PLACEHOLDER_READY,
+    TaskStatus.QC_PLACEHOLDER_READY: TaskStatus.RUN_PLACEHOLDER_READY,
+    TaskStatus.RUN_PLACEHOLDER_READY: TaskStatus.REPORT_PLACEHOLDER_READY,
+    TaskStatus.REPORT_PLACEHOLDER_READY: TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
+    TaskStatus.ARTIFACTS_PLACEHOLDER_READY: TaskStatus.AUDIT_PLACEHOLDER_READY,
+}
 
 
 def _next_task_id() -> str:
@@ -72,6 +80,20 @@ def get_task(task_id: str) -> TaskRecord | None:
     return _TASKS.get(task_id)
 
 
+def _coerce_task_status(status: TaskStatus | str) -> TaskStatus:
+    try:
+        return TaskStatus(status)
+    except ValueError as exc:
+        raise ValueError(f"Invalid task status: {status}") from exc
+
+
+def _validate_status_transition(current_status: TaskStatus, next_status: TaskStatus) -> None:
+    if _ALLOWED_STATUS_TRANSITIONS.get(current_status) != next_status:
+        raise ValueError(
+            f"Invalid task status transition: {current_status.value} -> {next_status.value}"
+        )
+
+
 def append_lifecycle_event(
     task_id: str,
     event_type: str,
@@ -106,7 +128,10 @@ def update_task_status(
     if task is None:
         return None
 
-    task.status = TaskStatus(status)
+    next_status = _coerce_task_status(status)
+    _validate_status_transition(task.status, next_status)
+
+    task.status = next_status
     task.message = message
     return append_lifecycle_event(
         task_id=task_id,

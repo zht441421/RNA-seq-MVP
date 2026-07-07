@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, HTTPException
 
 from backend.app.models.task import (
@@ -13,6 +15,7 @@ from backend.app.models.task import (
     TaskArtifactsResponse,
     TaskAuditResponse,
     TaskCreateRequest,
+    TaskRecord,
     TaskReportResponse,
     TaskResponse,
     TaskRunRequest,
@@ -26,20 +29,37 @@ from backend.app.services.task_service import create_task, get_task, update_task
 router = APIRouter(prefix="/task", tags=["task"])
 
 
+def _get_registry_task_or_404(task_id: str) -> TaskRecord:
+    task = get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
+    return task
+
+
 def _update_registry_status_or_404(
     task_id: str,
     status: TaskStatus,
     event_type: str,
     message: str,
 ) -> None:
-    task = update_task_status(
-        task_id=task_id,
-        status=status,
-        event_type=event_type,
-        message=message,
-    )
+    try:
+        task = update_task_status(
+            task_id=task_id,
+            status=status,
+            event_type=event_type,
+            message=message,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
+
+
+def _audit_timestamp(task: TaskRecord, event_index: int) -> str:
+    created_at = datetime.fromisoformat(task.created_at.replace("Z", "+00:00"))
+    timestamp = created_at + timedelta(seconds=event_index)
+    return timestamp.isoformat().replace("+00:00", "Z")
 
 
 @router.post("/create", response_model=TaskResponse)
@@ -215,6 +235,16 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
 
 @router.get("/{task_id}/report", response_model=TaskReportResponse)
 def get_task_report(task_id: str) -> TaskReportResponse:
+    _update_registry_status_or_404(
+        task_id=task_id,
+        status=TaskStatus.REPORT_PLACEHOLDER_READY,
+        event_type="report_placeholder_generated",
+        message=(
+            "Placeholder report generated and task status updated. "
+            "No real report file was created."
+        ),
+    )
+
     return TaskReportResponse(
         task_id=task_id,
         status="report_placeholder_ready",
@@ -262,6 +292,16 @@ def get_task_report(task_id: str) -> TaskReportResponse:
 
 @router.get("/{task_id}/artifacts", response_model=TaskArtifactsResponse)
 def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
+    _update_registry_status_or_404(
+        task_id=task_id,
+        status=TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
+        event_type="artifacts_placeholder_listed",
+        message=(
+            "Placeholder artifacts listed and task status updated. "
+            "No real files were generated."
+        ),
+    )
+
     return TaskArtifactsResponse(
         task_id=task_id,
         status="artifacts_placeholder_ready",
@@ -301,80 +341,33 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
 
 @router.get("/{task_id}/audit", response_model=TaskAuditResponse)
 def get_task_audit(task_id: str) -> TaskAuditResponse:
+    task = _get_registry_task_or_404(task_id)
+
     return TaskAuditResponse(
         task_id=task_id,
         status="audit_placeholder_ready",
         events=[
             AuditEvent(
-                event_id="audit_1",
-                event_type="task_created",
-                message="Placeholder task creation event.",
-                timestamp="placeholder_timestamp",
-                actor="system",
-                metadata={},
-            ),
-            AuditEvent(
-                event_id="audit_2",
-                event_type="plan_generated",
-                message="Placeholder analysis plan generation event.",
-                timestamp="placeholder_timestamp",
-                actor="system",
-                metadata={},
-            ),
-            AuditEvent(
-                event_id="audit_3",
-                event_type="qc_checked",
-                message="Placeholder QC checking event.",
-                timestamp="placeholder_timestamp",
-                actor="system",
-                metadata={},
-            ),
-            AuditEvent(
-                event_id="audit_4",
-                event_type="run_placeholder_executed",
-                message=(
-                    "Placeholder task run event. "
-                    "No real RNA-seq analysis was performed."
-                ),
-                timestamp="placeholder_timestamp",
-                actor="system",
-                metadata={},
-            ),
-            AuditEvent(
-                event_id="audit_5",
-                event_type="report_placeholder_generated",
-                message=(
-                    "Placeholder report generation event. "
-                    "No real report file was created."
-                ),
-                timestamp="placeholder_timestamp",
-                actor="system",
-                metadata={},
-            ),
-            AuditEvent(
-                event_id="audit_6",
-                event_type="artifacts_placeholder_listed",
-                message=(
-                    "Placeholder artifact listing event. "
-                    "No real files were generated."
-                ),
-                timestamp="placeholder_timestamp",
-                actor="system",
-                metadata={},
-            ),
+                event_id=f"audit_{index + 1}",
+                event_type=event.event_type,
+                message=event.message,
+                timestamp=_audit_timestamp(task, index),
+                actor=event.actor,
+                metadata=event.metadata,
+            )
+            for index, event in enumerate(task.lifecycle_events)
         ],
         limitations=[
-            "This endpoint does not read persisted task history.",
-            "Audit events are deterministic placeholders.",
+            "This endpoint returns deterministic placeholder registry lifecycle events.",
+            "This endpoint reads process-local in-memory task lifecycle history only.",
             "No database or durable audit storage is implemented yet.",
-            "Timestamps are placeholders and should not be treated as real execution times.",
+            "No real execution logs are read.",
+            "No real files are generated.",
         ],
     )
 
 
 @router.get("/{task_id}/status", response_model=TaskResponse)
 def get_task_status(task_id: str) -> TaskResponse:
-    task = get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
+    task = _get_registry_task_or_404(task_id)
     return TaskResponse(task_id=task.task_id, status=task.status, message=task.message)

@@ -111,10 +111,73 @@ FastQC, MultiQC, enrichment analysis, Snakemake, Nextflow, Coze service call, or
 biological file I/O is performed.
 
 `GET /task/{task_id}/status` now reflects the latest registry-backed status
-after plan, QC, and run placeholder transitions. `GET /task/{task_id}/report`,
-`GET /task/{task_id}/artifacts`, and `GET /task/{task_id}/audit` remain
-deterministic placeholder responses and are not fully wired to registry
-transition history yet.
+after plan, QC, and run placeholder transitions.
+
+## Phase 3.2b Strict Registry Transition Guard
+
+Phase 3.2b adds a registry-level guard for the placeholder task lifecycle. The
+only allowed in-memory status order is:
+
+- `created` -> `planned`
+- `planned` -> `qc_placeholder_ready`
+- `qc_placeholder_ready` -> `run_placeholder_ready`
+- `run_placeholder_ready` -> `report_placeholder_ready`
+- `report_placeholder_ready` -> `artifacts_placeholder_ready`
+- `artifacts_placeholder_ready` -> `audit_placeholder_ready`
+
+`audit_placeholder_ready` is terminal. The registry rejects skipped steps,
+rollbacks, repeated transitions, and attempts to move out of the terminal state
+with a stable `Invalid task status transition` error. The registry does not
+mutate `status`, `updated_at`, or `lifecycle_events` when a transition is
+rejected.
+
+The placeholder endpoints follow the same strict order when they receive a
+known `task_id`: `POST /task/plan` must run before `POST /task/qc`, and
+`POST /task/qc` must run before `POST /task/run`. Direct `created` -> QC or
+`created` -> run requests return a deterministic `409` response. Unknown task
+IDs continue to return the deterministic `404` response.
+
+This guard is still only an in-memory placeholder contract. Status changes do
+not mean that a real task executed. The API still does not call Coze, run
+Snakemake, run an RNA-seq pipeline, write database records, write log files, or
+create real artifacts. Future real execution still requires separately designed
+controlled runner, worker, and persistence boundaries.
+
+## Phase 3.3 Registry-Backed Report, Artifacts, and Audit Placeholders
+
+Phase 3.3 wires the existing read-style placeholder endpoints to the same
+in-memory task registry lifecycle while preserving the existing API paths and
+public placeholder response shapes.
+
+The registry-backed behavior is:
+
+- `GET /task/{task_id}/report` with a known `task_id` updates the in-memory
+  task status to `report_placeholder_ready` and appends
+  `report_placeholder_generated`.
+- `GET /task/{task_id}/artifacts` with a known `task_id` updates the in-memory
+  task status to `artifacts_placeholder_ready` and appends
+  `artifacts_placeholder_listed`.
+- `GET /task/{task_id}/audit` with a known `task_id` returns the accumulated
+  in-memory lifecycle events for that task through the existing audit response
+  shape. It does not append an audit-viewed event, so repeated audit reads are
+  deterministic and do not grow the lifecycle history.
+
+If a request supplies a `task_id` that is not present in the registry, these
+read endpoints return the same deterministic `404` response contract used by
+the registry-backed transition endpoints:
+
+```json
+{
+  "detail": "Task not found: task_missing"
+}
+```
+
+The report and artifacts endpoints still return placeholder payloads only.
+They do not generate durable report files, create artifact files, read
+biological input files, run RNA-seq computation, or call Coze services. The
+audit endpoint is also process-local and in-memory only. There is no durable
+audit log, no database persistence, no real execution log reading, and no real
+file generation.
 
 ## Known Limitations
 
@@ -127,12 +190,9 @@ transition history yet.
 - No durable audit log is implemented.
 - No real Coze service is called.
 - No Snakemake workflow is run.
-- `GET /task/{task_id}/report`, `GET /task/{task_id}/artifacts`, and
-  `GET /task/{task_id}/audit` are not yet wired to registry transition history.
 
 ## Next Recommended Phases
 
-- Wire report, artifacts, and audit responses to registry-backed task history.
 - Define the input file validation contract before reading any real files.
 - Define the output artifact directory contract before creating artifacts.
 - Introduce an execution adapter interface with mock and dry-run backends first.

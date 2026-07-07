@@ -43,3 +43,26 @@ def test_task_plan_returns_placeholder_analysis_plan() -> None:
 
     assert legacy_response.status_code == 200
     assert "task_id" not in legacy_response.json()
+
+
+def test_task_plan_rejects_repeated_plan_transition() -> None:
+    client = TestClient(app)
+    created = client.post("/task/create", json={}).json()
+    payload = {
+        "task_id": created["task_id"],
+        "project_name": "demo_bulk_rnaseq",
+        "omics_type": "bulk_rnaseq",
+        "input_level": "count_matrix",
+        "analysis_goal": ["qc", "differential_expression"],
+        "group_column": "condition",
+        "contrast": "treatment_vs_control",
+    }
+
+    first_response = client.post("/task/plan", json=payload)
+    repeated_response = client.post("/task/plan", json=payload)
+
+    assert first_response.status_code == 200
+    assert repeated_response.status_code == 409
+    assert repeated_response.json() == {
+        "detail": "Invalid task status transition: planned -> planned"
+    }
