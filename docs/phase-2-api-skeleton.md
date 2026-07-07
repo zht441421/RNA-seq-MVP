@@ -397,6 +397,14 @@ Expected response example:
 }
 ```
 
+Current limitations:
+
+- This endpoint does not read persisted task history.
+- Audit events are deterministic placeholders.
+- No database or durable audit storage is implemented yet.
+- Timestamps are placeholders and should not be treated as real execution
+  times.
+
 ### GET `/task/{task_id}/status`
 
 Returns the current status of a previously created in-memory task.
