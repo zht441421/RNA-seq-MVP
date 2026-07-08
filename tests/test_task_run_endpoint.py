@@ -12,7 +12,11 @@ def isolated_registry():
     reset_registry()
 
 
-def test_task_run_returns_placeholder_run_result() -> None:
+def test_task_run_returns_placeholder_run_result(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     client = TestClient(app)
     created = client.post("/task/create", json={}).json()
     plan_payload = {

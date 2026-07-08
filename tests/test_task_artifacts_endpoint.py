@@ -51,7 +51,11 @@ def _advance_to_report_ready(client: TestClient, task_id: str) -> None:
     assert client.get(f"/task/{task_id}/report").status_code == 200
 
 
-def test_task_artifacts_returns_placeholder_artifacts() -> None:
+def test_task_artifacts_returns_placeholder_artifacts(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     client = TestClient(app)
     task_id = _create_task(client)
     _advance_to_report_ready(client, task_id)
@@ -63,5 +67,13 @@ def test_task_artifacts_returns_placeholder_artifacts() -> None:
     assert body["task_id"] == task_id
     assert body["status"] == "artifacts_placeholder_ready"
     assert body["artifacts"]
-    assert all(artifact["available"] is False for artifact in body["artifacts"])
+    assert [artifact["available"] for artifact in body["artifacts"]] == [
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        True,
+    ]
     assert body["limitations"]

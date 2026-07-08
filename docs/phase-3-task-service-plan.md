@@ -319,17 +319,88 @@ database records. It also does not call external tools or services: no Rscript,
 Docker, shell scripts, Snakemake, Nextflow, Coze service, DESeq2, edgeR, limma,
 FastQC, MultiQC, or enrichment analysis is invoked.
 
-The adapter is a boundary for future work only. Future Phase 3.7 should add
-explicit dry-run execution behavior, and future Phase 4.1 should connect a real
-minimal Bulk RNA-seq workflow only after validation, artifact, runner, and
-persistence boundaries are designed and tested.
+The adapter is a boundary for future work only. Future Phase 4.1 should connect
+a real minimal Bulk RNA-seq workflow only after validation, artifact, runner,
+and persistence boundaries are designed and tested.
+
+## Phase 3.7 Dry-Run Execution Records
+
+Phase 3.7 makes the placeholder execution adapter write deterministic dry-run
+execution records under the existing task-scoped output directory:
+
+```text
+tasks/<task_id>/
+```
+
+When `POST /task/run` reaches the placeholder execution adapter, the adapter
+now writes these small JSON contract files:
+
+- `run_manifest.json`
+- `execution_summary.json`
+- `planned_steps.json`
+
+These files are dry-run execution records only. They are not biological
+results, statistical outputs, quality-control outputs, reports derived from
+analysis, logs from external tools, or durable database records.
+
+`run_manifest.json` records the task ID, executor name, `dry_run` execution
+mode, omics type, project name, safe task-relative output directory, planned
+placeholder artifacts, generated dry-run files, and limitations.
+
+`execution_summary.json` records deterministic timing, `dry_run_completed`
+status, messages, warnings, limitations, and
+`real_execution_performed: false`.
+
+`planned_steps.json` records the future workflow steps that were planned but
+not executed:
+
+- `validate_inputs`
+- `prepare_output_directory`
+- `run_quality_control`
+- `run_differential_expression`
+- `generate_report`
+- `collect_artifacts`
+
+Every planned step is marked `planned_not_executed` and
+`external_tool_called: false`.
+
+The dry-run implementation keeps all public paths safe and relative. Public API
+responses expose paths such as:
+
+```text
+tasks/<task_id>/run_manifest.json
+```
+
+They do not expose local absolute filesystem paths. The filesystem write path
+remains internal and is resolved through the artifact path layer under
+`BIOINFO_OUTPUT_ROOT`.
+
+`POST /task/run` keeps the existing public response model and task registry
+status contract. The in-memory status remains `run_placeholder_ready`, and the
+lifecycle event remains `run_placeholder_executed`. The response artifact list
+now includes the generated dry-run record files in addition to the planned
+placeholder artifact paths.
+
+`GET /task/{task_id}/artifacts` keeps the existing response model and includes
+the dry-run record files when they already exist. The endpoint still does not
+create files by itself.
+
+Phase 3.7 still does not run real RNA-seq analysis. It does not call DESeq2,
+edgeR, limma, FastQC, MultiQC, Snakemake, Nextflow, Docker, Rscript, shell
+scripts, Coze, or any external tool. It does not parse large biological files,
+create fake statistical outputs, create fake biological findings, add database
+persistence, or generate real biological result files.
+
+Next Phase 4.1 should introduce the first real minimal Bulk RNA-seq workflow
+only after this dry-run boundary remains covered by tests.
 
 ## Known Limitations
 
 - No real RNA-seq execution is implemented.
 - No DESeq2, edgeR, limma, FastQC, MultiQC, or enrichment analysis is wired.
 - No real biological input/output files are read or written.
-- No artifact files are created.
+- No biological artifact files are created; only deterministic dry-run contract
+  record files are written by `POST /task/run`.
 - No database persistence is implemented.
 - No log files are written.
 - No durable audit log is implemented.
@@ -340,11 +411,11 @@ persistence boundaries are designed and tested.
 - Artifact path handling defines safe planned output locations only; it does
   not generate artifact files or real biological results.
 - The execution adapter is placeholder-only; it may create the task output
-  directory but does not generate real files or call external tools.
+  directory and deterministic dry-run record files but does not generate real
+  biological outputs or call external tools.
 
 ## Next Recommended Phases
 
-- Add explicit dry-run execution behavior on top of the adapter interface.
 - Connect a real minimal Bulk RNA-seq workflow only after the dry-run boundary
   is tested.
 - Only later integrate real RNA-seq tools after state, validation, artifact,

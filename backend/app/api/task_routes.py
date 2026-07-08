@@ -26,7 +26,10 @@ from backend.app.models.task import (
     TaskValidateInputsRequest,
     TaskValidateInputsResponse,
 )
-from backend.app.services.artifact_paths import list_placeholder_artifact_specs
+from backend.app.services.artifact_paths import (
+    list_dry_run_record_specs,
+    list_placeholder_artifact_specs,
+)
 from backend.app.services.execution_adapter import ExecutionResult, execute_task_placeholder
 from backend.app.services.input_validation import (
     InputFileValidationResult,
@@ -104,7 +107,21 @@ def _run_artifacts(execution_result: ExecutionResult) -> list[dict]:
             "executor_name": execution_result.executor_name,
             "description": artifact["description"],
         }
-        for artifact in execution_result.planned_artifacts
+        for artifact in [
+            *execution_result.planned_artifacts,
+            *execution_result.generated_files,
+        ]
+    ]
+
+
+def _artifact_specs_for_response(task_id: str) -> list[dict]:
+    return [
+        *list_placeholder_artifact_specs(task_id),
+        *[
+            artifact
+            for artifact in list_dry_run_record_specs(task_id)
+            if artifact["exists"]
+        ],
     ]
 
 
@@ -266,6 +283,8 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
     execution_result = execute_task_placeholder(
         task_id=request.task_id,
         registry_record=task,
+        project_name=request.project_name,
+        omics_type=request.omics_type,
     )
 
     return TaskRunResponse(
@@ -383,10 +402,13 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
                 description=artifact["description"],
                 available=artifact["exists"],
             )
-            for index, artifact in enumerate(list_placeholder_artifact_specs(task_id), start=1)
+            for index, artifact in enumerate(_artifact_specs_for_response(task_id), start=1)
         ],
         limitations=[
-            "This endpoint lists planned safe relative artifact paths only.",
+            (
+                "This endpoint lists planned safe relative artifact paths "
+                "and existing dry-run record files."
+            ),
             "This endpoint does not create or write real artifact files.",
             "Real artifact generation will be implemented in a later phase.",
         ],

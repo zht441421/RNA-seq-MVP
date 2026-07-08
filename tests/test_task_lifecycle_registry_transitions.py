@@ -62,7 +62,11 @@ def _assert_status(client: TestClient, task_id: str, expected_status: str) -> No
     assert body["status"] == expected_status
 
 
-def test_plan_qc_run_update_registry_status_and_lifecycle_events() -> None:
+def test_plan_qc_run_update_registry_status_and_lifecycle_events(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     client = TestClient(app)
     task_id = _create_task(client)
 

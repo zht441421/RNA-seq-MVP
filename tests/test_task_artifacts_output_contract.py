@@ -91,8 +91,19 @@ def test_task_artifacts_endpoint_exposes_safe_planned_artifact_paths(
         f"tasks/{task_id}/qc_summary.json",
         f"tasks/{task_id}/differential_expression_results.csv",
         f"tasks/{task_id}/report.md",
+        f"tasks/{task_id}/run_manifest.json",
+        f"tasks/{task_id}/execution_summary.json",
+        f"tasks/{task_id}/planned_steps.json",
     ]
-    assert all(artifact["available"] is False for artifact in body["artifacts"])
+    assert [artifact["available"] for artifact in body["artifacts"]] == [
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        True,
+    ]
     assert all(not Path(artifact["path"]).is_absolute() for artifact in body["artifacts"])
     assert body["limitations"]
     _assert_no_forbidden_fragments(body)

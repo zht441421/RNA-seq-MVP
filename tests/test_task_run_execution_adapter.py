@@ -90,11 +90,26 @@ def test_task_run_invokes_placeholder_execution_adapter(
         f"tasks/{task_id}/qc_summary.json",
         f"tasks/{task_id}/differential_expression_results.csv",
         f"tasks/{task_id}/report.md",
+        f"tasks/{task_id}/run_manifest.json",
+        f"tasks/{task_id}/execution_summary.json",
+        f"tasks/{task_id}/planned_steps.json",
     ]
     assert all(artifact["executor_name"] == "placeholder_rnaseq_executor" for artifact in body["artifacts"])
-    assert all(artifact["available"] is False for artifact in body["artifacts"])
+    assert [artifact["available"] for artifact in body["artifacts"]] == [
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        True,
+    ]
     assert (output_root / "tasks" / task_id).is_dir()
-    assert list((output_root / "tasks" / task_id).iterdir()) == []
+    assert sorted(path.name for path in (output_root / "tasks" / task_id).iterdir()) == [
+        "execution_summary.json",
+        "planned_steps.json",
+        "run_manifest.json",
+    ]
     _assert_no_forbidden_fragments(body)
 
     status_response = client.get(f"/task/{task_id}/status")

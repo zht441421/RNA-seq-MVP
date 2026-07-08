@@ -137,7 +137,11 @@ def test_report_whitespace_task_id_is_routed_deterministically() -> None:
     _assert_no_forbidden_fragments(body)
 
 
-def test_artifacts_and_audit_return_deterministic_placeholder_responses() -> None:
+def test_artifacts_and_audit_return_deterministic_placeholder_responses(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     client = TestClient(app)
     task_id = _create_task(client)
     _advance_to_report_ready(client, task_id)
@@ -154,14 +158,28 @@ def test_artifacts_and_audit_return_deterministic_placeholder_responses() -> Non
         "artifact_2",
         "artifact_3",
         "artifact_4",
+        "artifact_5",
+        "artifact_6",
+        "artifact_7",
     ]
     assert [artifact["path"] for artifact in artifacts["artifacts"]] == [
         f"tasks/{task_id}/run_summary.json",
         f"tasks/{task_id}/qc_summary.json",
         f"tasks/{task_id}/differential_expression_results.csv",
         f"tasks/{task_id}/report.md",
+        f"tasks/{task_id}/run_manifest.json",
+        f"tasks/{task_id}/execution_summary.json",
+        f"tasks/{task_id}/planned_steps.json",
     ]
-    assert all(artifact["available"] is False for artifact in artifacts["artifacts"])
+    assert [artifact["available"] for artifact in artifacts["artifacts"]] == [
+        False,
+        False,
+        False,
+        False,
+        True,
+        True,
+        True,
+    ]
     _assert_no_forbidden_fragments(artifacts)
 
     assert audit_response.status_code == 200

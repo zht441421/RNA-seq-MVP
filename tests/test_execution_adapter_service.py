@@ -49,7 +49,7 @@ def test_placeholder_executor_returns_deterministic_execution_result(
     result = PlaceholderRNASeqExecutor().execute(request)
 
     assert result.task_id == "task_0001"
-    assert result.status == "placeholder_execution_completed"
+    assert result.status == "dry_run_completed"
     assert result.executor_name == "placeholder_rnaseq_executor"
     assert result.started_at == "2026-01-01T00:00:00Z"
     assert result.finished_at == "2026-01-01T00:00:00Z"
@@ -57,15 +57,29 @@ def test_placeholder_executor_returns_deterministic_execution_result(
     assert result.messages == [
         "Placeholder execution adapter invoked.",
         "Prepared task output directory: tasks/task_0001.",
-        "Planned artifact paths were loaded from the artifact output contract.",
+        "Dry-run execution contract records were written.",
+        "No external tools were called.",
     ]
-    assert result.warnings == ["No real RNA-seq execution was performed."]
+    assert result.warnings == [
+        "No real RNA-seq execution was performed.",
+        "Dry-run records are not biological results.",
+    ]
     assert any("No real RNA-seq analysis" in limitation for limitation in result.limitations)
     assert any("No DESeq2" in limitation for limitation in result.limitations)
 
     output_dir = output_root / "tasks" / "task_0001"
     assert output_dir.is_dir()
-    assert list(output_dir.iterdir()) == []
+    assert sorted(path.name for path in output_dir.iterdir()) == [
+        "execution_summary.json",
+        "planned_steps.json",
+        "run_manifest.json",
+    ]
+    assert [artifact["relative_path"] for artifact in result.generated_files] == [
+        "tasks/task_0001/run_manifest.json",
+        "tasks/task_0001/execution_summary.json",
+        "tasks/task_0001/planned_steps.json",
+    ]
+    assert all(artifact["exists"] is True for artifact in result.generated_files)
 
 
 def test_placeholder_executor_returns_safe_planned_artifacts(
@@ -96,7 +110,7 @@ def test_execute_task_placeholder_uses_placeholder_executor(
     result = execute_task_placeholder("task_demo")
 
     assert result.executor_name == "placeholder_rnaseq_executor"
-    assert result.status == "placeholder_execution_completed"
+    assert result.status == "dry_run_completed"
 
 
 def test_get_executor_returns_placeholder_executor() -> None:

@@ -93,7 +93,11 @@ def _assert_no_runtime_leaks(body: dict[str, object]) -> None:
     assert all(claim not in text for claim in real_execution_claims)
 
 
-def test_phase_2_placeholder_lifecycle_responses_are_bounded() -> None:
+def test_phase_2_placeholder_lifecycle_responses_are_bounded(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     bodies = _phase_2_lifecycle_responses(TestClient(app))
 
     expected_payload_fields = {
@@ -115,7 +119,11 @@ def test_phase_2_placeholder_lifecycle_responses_are_bounded() -> None:
         _assert_no_runtime_leaks(body)
 
 
-def test_all_phase_2_lifecycle_endpoints_echo_task_id_contract() -> None:
+def test_all_phase_2_lifecycle_endpoints_echo_task_id_contract(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     bodies = _phase_2_lifecycle_responses(TestClient(app))
     task_id = bodies["plan"]["task_id"]
 

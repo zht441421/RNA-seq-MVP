@@ -44,7 +44,11 @@ def _qc_payload(task_id: str) -> dict[str, object]:
     }
 
 
-def test_task_audit_returns_placeholder_audit_trail() -> None:
+def test_task_audit_returns_placeholder_audit_trail(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     client = TestClient(app)
     task_id = _create_task(client)
     assert client.post("/task/plan", json=_plan_payload(task_id)).status_code == 200

@@ -50,7 +50,11 @@ def _advance_to_run_ready(client: TestClient, task_id: str) -> None:
     assert client.post("/task/run", json=_plan_payload(task_id)).status_code == 200
 
 
-def test_task_report_returns_placeholder_report() -> None:
+def test_task_report_returns_placeholder_report(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(tmp_path / "outputs"))
     client = TestClient(app)
     task_id = _create_task(client)
     _advance_to_run_ready(client, task_id)
