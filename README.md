@@ -26,6 +26,18 @@ The system should not directly generate strong biological conclusions unless the
 
 ## Current Status
 
+## Current Phase 4 MVP Status
+
+Phase 4 currently supports the default `minimal_cpm_log2fc` Bulk RNA-seq
+workflow and an explicit `deseq2` workflow when `GET /task/formal-de/preflight`
+reports readiness. Demo validation scripts are available at
+`scripts/run_phase_4_4_demo.py` and `scripts/run_phase_4_9_deseq2_demo.py`.
+
+Current limitations remain: no edgeR, limma, enrichment, batch correction,
+complex design formulas, visualization generation, database persistence, or
+real Coze API integration. Minimal results are exploratory, and synthetic demo
+results are for pipeline validation only.
+
 Phase 1 has been validated and tagged as:
 
 ```text
