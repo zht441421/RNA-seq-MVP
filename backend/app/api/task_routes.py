@@ -60,6 +60,7 @@ from backend.app.services.task_service import (
     append_lifecycle_event,
     create_task,
     get_task,
+    save_task_artifacts,
     update_task_status,
 )
 
@@ -464,6 +465,8 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             event_type="deseq2_executed",
             message="DESeq2 formal differential expression execution completed and task status updated.",
         )
+        artifacts = _run_artifacts(execution_result)
+        save_task_artifacts(request.task_id, artifacts)
         return TaskRunResponse(
             task_id=request.task_id,
             project_name=request.project_name,
@@ -494,7 +497,7 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                     message="DESeq2 results, summary, manifest, and report artifacts were written.",
                 ),
             ],
-            artifacts=_run_artifacts(execution_result),
+            artifacts=artifacts,
             limitations=execution_result.limitations,
         )
 
@@ -524,6 +527,8 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             event_type="minimal_rnaseq_executed",
             message="Minimal real Bulk RNA-seq MVP execution completed and task status updated.",
         )
+        artifacts = _run_artifacts(execution_result)
+        save_task_artifacts(request.task_id, artifacts)
         return TaskRunResponse(
             task_id=request.task_id,
             project_name=request.project_name,
@@ -548,7 +553,7 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                     message="CPM normalization and preliminary log2 fold-change ranking were computed without statistical testing.",
                 ),
             ],
-            artifacts=_run_artifacts(execution_result),
+            artifacts=artifacts,
             limitations=execution_result.limitations,
         )
 
@@ -571,6 +576,8 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    artifacts = _run_artifacts(execution_result)
+    save_task_artifacts(request.task_id, artifacts)
     return TaskRunResponse(
         task_id=request.task_id,
         project_name=request.project_name,
@@ -595,7 +602,7 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 message="DESeq2, edgeR, and limma execution are not implemented yet.",
             ),
         ],
-        artifacts=_run_artifacts(execution_result),
+        artifacts=artifacts,
         limitations=[
             *execution_result.limitations,
             "This endpoint does not run real RNA-seq analysis.",
@@ -703,20 +710,23 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
             ),
         )
 
+    artifact_payloads = [
+        {
+            "artifact_id": f"artifact_{index}",
+            "name": artifact["name"],
+            "artifact_type": artifact["artifact_type"],
+            "path": artifact["relative_path"],
+            "description": artifact["description"],
+            "available": artifact["exists"],
+        }
+        for index, artifact in enumerate(_artifact_specs_for_response(task_id), start=1)
+    ]
+    save_task_artifacts(task_id, artifact_payloads)
+
     return TaskArtifactsResponse(
         task_id=task_id,
         status="artifacts_placeholder_ready",
-        artifacts=[
-            TaskArtifact(
-                artifact_id=f"artifact_{index}",
-                name=artifact["name"],
-                artifact_type=artifact["artifact_type"],
-                path=artifact["relative_path"],
-                description=artifact["description"],
-                available=artifact["exists"],
-            )
-            for index, artifact in enumerate(_artifact_specs_for_response(task_id), start=1)
-        ],
+        artifacts=[TaskArtifact(**artifact) for artifact in artifact_payloads],
         limitations=[
             (
                 "This endpoint lists planned safe relative artifact paths "

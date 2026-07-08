@@ -38,6 +38,9 @@ complex design formulas, visualization generation, database persistence, or
 real Coze API integration. Minimal results are exploratory, and synthetic demo
 results are for pipeline validation only.
 
+Phase 5 begins with a local SQLite persistent task storage foundation for task
+metadata, status, lifecycle events, and artifact metadata.
+
 Phase 1 has been validated and tagged as:
 
 ```text

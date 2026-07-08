@@ -7,6 +7,7 @@ from backend.app.models.task import (
     TaskRecord,
     TaskStatus,
 )
+from backend.app.services.task_store import get_task_store
 
 
 _TASKS: dict[str, TaskRecord] = {}
@@ -48,6 +49,7 @@ def create_task(request: TaskCreateRequest | None = None) -> TaskRecord:
     global _NEXT_TASK_NUMBER
 
     request = request or TaskCreateRequest()
+    _sync_next_task_number_from_store()
     task_number = _NEXT_TASK_NUMBER
     task_id = _next_task_id()
     timestamp = _timestamp_for_task(task_number)
@@ -72,12 +74,23 @@ def create_task(request: TaskCreateRequest | None = None) -> TaskRecord:
     )
 
     _TASKS[task_id] = task
+    _persist_task(task)
     _NEXT_TASK_NUMBER += 1
     return task
 
 
 def get_task(task_id: str) -> TaskRecord | None:
-    return _TASKS.get(task_id)
+    task = _TASKS.get(task_id)
+    if task is not None:
+        return task
+    try:
+        persisted_task = get_task_store().load_task(task_id)
+    except ValueError:
+        return None
+    if persisted_task is not None:
+        _TASKS[task_id] = persisted_task
+        _sync_next_task_number_from_store()
+    return persisted_task
 
 
 def _coerce_task_status(status: TaskStatus | str) -> TaskStatus:
@@ -114,6 +127,7 @@ def append_lifecycle_event(
         )
     )
     task.updated_at = _timestamp_for_task_event(task)
+    _persist_task(task)
     return task
 
 
@@ -146,8 +160,40 @@ def list_tasks() -> list[TaskRecord]:
     return list(_TASKS.values())
 
 
-def reset_registry() -> None:
+def save_task_artifacts(task_id: str, artifacts: list[dict[str, Any]]) -> None:
+    get_task_store().replace_task_artifacts(task_id, artifacts)
+
+
+def list_task_artifacts(task_id: str) -> list[dict[str, Any]]:
+    return get_task_store().list_artifact_metadata(task_id)
+
+
+def reset_in_memory_registry() -> None:
     global _NEXT_TASK_NUMBER
 
     _TASKS.clear()
+    try:
+        _NEXT_TASK_NUMBER = get_task_store().next_task_number()
+    except ValueError:
+        _NEXT_TASK_NUMBER = 1
+
+
+def reset_registry(*, clear_store: bool = True) -> None:
+    global _NEXT_TASK_NUMBER
+
+    _TASKS.clear()
+    if clear_store:
+        get_task_store().clear()
     _NEXT_TASK_NUMBER = 1
+
+
+def _persist_task(task: TaskRecord) -> None:
+    get_task_store().save_task(task)
+
+
+def _sync_next_task_number_from_store() -> None:
+    global _NEXT_TASK_NUMBER
+
+    next_task_number = get_task_store().next_task_number()
+    if next_task_number > _NEXT_TASK_NUMBER:
+        _NEXT_TASK_NUMBER = next_task_number
