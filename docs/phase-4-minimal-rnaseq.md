@@ -16,6 +16,10 @@ normalization, preliminary log2 fold-change ranking, generated artifacts,
 limitations, and recommended next steps. This is a reporting-only improvement;
 it does not add formal differential expression statistics.
 
+Phase 4.4 adds stable project-local demo inputs and an end-to-end validation
+script for reproducible acceptance testing. This is a reproducibility and
+validation improvement only; it does not add new RNA-seq algorithms.
+
 This phase is intentionally modest. It does not implement a formal
 differential expression statistical method and does not report p-values or
 adjusted p-values.
@@ -238,6 +242,51 @@ Before formal differential expression analysis, users should verify sample
 metadata design, inspect QC metrics, confirm biological replicates, and consider
 batch design. Future phases may add DESeq2, edgeR, or limma support after those
 analysis boundaries are implemented.
+
+## Phase 4.4 Demo Data And E2E Script
+
+Phase 4.4 adds deterministic demo data under:
+
+```text
+data/demo/rnaseq_minimal/
+```
+
+The demo includes:
+
+- `metadata.csv` with two conditions and three samples per condition.
+- `counts.csv` with integer non-negative counts and matching sample columns.
+- `README.md` documenting the synthetic MVP validation data.
+
+The end-to-end script is:
+
+```powershell
+python scripts\run_phase_4_4_demo.py
+```
+
+The script uses FastAPI `TestClient` and does not require a live server. It
+creates a task, runs the existing plan and QC endpoints to satisfy registry
+transition guards, executes the minimal real RNA-seq path, verifies expected
+artifacts, checks execution flags, reads the public artifact and audit
+endpoints, and prints a concise deterministic validation summary.
+
+The script validates:
+
+- Minimal run completion.
+- Presence of `run_manifest.json`, `execution_summary.json`, `qc_summary.json`,
+  `normalized_counts_cpm.csv`, `differential_expression_results.csv`, and
+  `report.md`.
+- `real_execution_performed` is `true`.
+- `external_tools_called` is `false`.
+- `statistical_test_performed` is `false`.
+- The preliminary ranking output does not contain p-values, adjusted p-values,
+  q-values, or statistical significance fields.
+- The report preserves interpretation boundaries.
+- Public responses do not expose local absolute paths or sensitive internal
+  details.
+
+Phase 4.4 still does not implement DESeq2, edgeR, limma, formal differential
+expression statistics, p-values, adjusted p-values, q-values, enrichment
+analysis, pathway analysis, or fake biological conclusions.
 
 ## Limitations
 

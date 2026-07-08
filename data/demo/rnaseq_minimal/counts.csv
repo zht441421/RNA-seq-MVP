@@ -1,0 +1,11 @@
+gene_id,control_1,control_2,control_3,treatment_1,treatment_2,treatment_3
+GeneAlpha,120,130,125,420,410,430
+GeneBeta,350,340,360,90,85,95
+GeneGamma,50,55,52,60,58,62
+GeneDelta,20,18,21,25,27,24
+GeneEpsilon,500,520,510,505,515,495
+GeneZeta,12,15,14,80,78,82
+GeneEta,95,100,98,30,28,32
+GeneTheta,0,1,0,2,1,0
+GeneIota,4,3,2,1,0,1
+GeneKappa,60,62,59,160,155,158
