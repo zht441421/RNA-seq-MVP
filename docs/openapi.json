@@ -1096,6 +1096,28 @@
               }
             ],
             "title": "Execution Mode"
+          },
+          "analysis_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Method"
+          },
+          "formal_de_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formal De Method"
           }
         },
         "type": "object",

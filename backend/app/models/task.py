@@ -111,6 +111,8 @@ class TaskRunRequest(BaseModel):
     metadata_file: Optional[str] = None
     count_matrix_file: Optional[str] = None
     execution_mode: Optional[str] = None
+    analysis_method: Optional[str] = None
+    formal_de_method: Optional[str] = None
 
 
 class TaskRunStep(BaseModel):

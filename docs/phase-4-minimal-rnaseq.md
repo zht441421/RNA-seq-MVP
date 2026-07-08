@@ -20,6 +20,11 @@ Phase 4.4 adds stable project-local demo inputs and an end-to-end validation
 script for reproducible acceptance testing. This is a reproducibility and
 validation improvement only; it does not add new RNA-seq algorithms.
 
+Phase 4.5 adds an explicit analysis method contract for the current minimal
+workflow and the future formal differential expression methods. It records
+method metadata in the generated outputs and rejects requested formal methods
+deterministically until they are implemented.
+
 This phase is intentionally modest. It does not implement a formal
 differential expression statistical method and does not report p-values or
 adjusted p-values.
@@ -42,7 +47,8 @@ Minimal real execution is selected when both fields are supplied:
   "contrast": "treatment_vs_control",
   "metadata_file": "demo/metadata.csv",
   "count_matrix_file": "demo/counts.csv",
-  "execution_mode": "minimal_real"
+  "execution_mode": "minimal_real",
+  "analysis_method": "minimal_cpm_log2fc"
 }
 ```
 
@@ -50,6 +56,10 @@ Minimal real execution is selected when both fields are supplied:
 registry status remains `run_placeholder_ready` for compatibility with the
 Phase 3 lifecycle contract, while generated files and execution summaries mark
 the run as `minimal_analysis_completed`.
+
+`analysis_method` is optional for minimal real execution. When omitted and both
+input files are supplied, the current method defaults to
+`minimal_cpm_log2fc`.
 
 ## Input Root
 
@@ -196,6 +206,10 @@ formal differential expression result. It includes:
 - `log2_fold_change`
 - `total_count`
 - `analysis_note`
+- `analysis_method`
+- `formal_statistical_test`
+- `pvalue_available`
+- `adjusted_pvalue_available`
 
 It deliberately does not include `pvalue`, `padj`, `qvalue`, significance
 labels, enrichment terms, or pathway results.
@@ -287,6 +301,76 @@ The script validates:
 Phase 4.4 still does not implement DESeq2, edgeR, limma, formal differential
 expression statistics, p-values, adjusted p-values, q-values, enrichment
 analysis, pathway analysis, or fake biological conclusions.
+
+## Phase 4.5 Formal DE Contract
+
+Phase 4.5 keeps the current execution method as:
+
+```text
+minimal_cpm_log2fc
+```
+
+This method performs CPM normalization and preliminary group-level log2
+fold-change ranking only. It does not fit a formal statistical model, so
+p-values and adjusted p-values are still unavailable.
+
+The future planned formal differential expression methods are:
+
+- DESeq2
+- edgeR
+- limma
+
+The minimal real workflow records the method contract in
+`execution_summary.json`:
+
+- `analysis_method: "minimal_cpm_log2fc"`
+- `analysis_method_display_name: "Minimal CPM + preliminary log2 fold-change ranking"`
+- `formal_de_method: null`
+- `formal_de_ready: false`
+- `statistical_test_performed: false`
+- `pvalue_available: false`
+- `adjusted_pvalue_available: false`
+- `external_tools_called: false`
+- `method_limitations`
+- `next_supported_formal_methods: ["deseq2", "edger", "limma"]`
+
+It also records compatible metadata in `run_manifest.json`:
+
+- `analysis_method: "minimal_cpm_log2fc"`
+- `execution_mode: "minimal_real"`
+- `formal_de_ready: false`
+- `requested_formal_method: null`
+- `supported_future_formal_methods: ["deseq2", "edger", "limma"]`
+
+`differential_expression_results.csv` remains a preliminary ranking table. It
+adds only method metadata fields:
+
+- `analysis_method`
+- `formal_statistical_test`
+- `pvalue_available`
+- `adjusted_pvalue_available`
+
+If a request sets `analysis_method` or `formal_de_method` to `deseq2`, `edger`,
+or `limma`, the API returns a deterministic not-implemented error:
+
+```json
+{
+  "detail": {
+    "error_code": "FORMAL_DE_METHOD_NOT_IMPLEMENTED",
+    "message": "Formal differential expression method is planned but not implemented in this phase.",
+    "requested_method": "deseq2",
+    "supported_current_methods": ["minimal_cpm_log2fc"],
+    "supported_future_formal_methods": ["deseq2", "edger", "limma"],
+    "errors": [
+      "Requested formal differential expression method 'deseq2' is not implemented yet.",
+      "No DESeq2, edgeR, limma, Rscript, or external tool execution was started."
+    ]
+  }
+}
+```
+
+No output analysis files are generated for that request, and the task is not
+marked as `minimal_analysis_completed`.
 
 ## Limitations
 

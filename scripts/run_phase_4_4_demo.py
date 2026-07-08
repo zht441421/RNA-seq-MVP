@@ -40,6 +40,10 @@ FORBIDDEN_PUBLIC_FRAGMENTS = (
     "secret",
 )
 FORBIDDEN_RESULT_FIELDS = ("pvalue", "padj", "qvalue", "significant")
+ALLOWED_METHOD_METADATA_FRAGMENTS = (
+    "pvalue_available",
+    "adjusted_pvalue_available",
+)
 
 
 def run_demo(
@@ -104,6 +108,18 @@ def run_demo(
         _require(
             execution_summary.get("statistical_test_performed") is False,
             "execution summary recorded a statistical test",
+        )
+        _require(
+            execution_summary.get("analysis_method") == "minimal_cpm_log2fc",
+            "execution summary did not record the minimal method contract",
+        )
+        _require(
+            execution_summary.get("formal_de_ready") is False,
+            "execution summary incorrectly marked formal DE readiness",
+        )
+        _require(
+            execution_summary.get("pvalue_available") is False,
+            "execution summary incorrectly recorded p-value availability",
         )
 
         _verify_result_csv(artifact_dir / "differential_expression_results.csv")
@@ -261,6 +277,8 @@ def _verify_result_csv(path: Path) -> None:
         )
 
     text = path.read_text(encoding="utf-8").lower()
+    for allowed_fragment in ALLOWED_METHOD_METADATA_FRAGMENTS:
+        text = text.replace(allowed_fragment, "")
     for forbidden_field in FORBIDDEN_RESULT_FIELDS:
         _require(
             forbidden_field not in text,

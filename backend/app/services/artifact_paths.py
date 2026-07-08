@@ -30,7 +30,10 @@ _PLACEHOLDER_ARTIFACTS = [
     {
         "name": "differential_expression_results.csv",
         "artifact_type": "differential_expression_results",
-        "description": "Planned placeholder differential expression results table. No real RNA-seq results have been generated yet.",
+        "description": (
+            "Planned placeholder preliminary CPM/log2FC ranking output path; "
+            "not formal differential expression statistics."
+        ),
     },
     {
         "name": "report.md",
@@ -87,8 +90,7 @@ _MINIMAL_RNASEQ_ARTIFACTS = [
         "name": "differential_expression_results.csv",
         "artifact_type": "preliminary_log2fc_ranking",
         "description": (
-            "Generated preliminary log2 fold-change ranking. "
-            "No formal differential expression statistical test is represented."
+            "Preliminary CPM/log2FC ranking output; not formal differential expression statistics."
         ),
     },
     {

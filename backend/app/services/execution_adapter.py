@@ -21,6 +21,8 @@ from backend.app.services.rnaseq_minimal import (
     compute_library_sizes,
     compute_preliminary_log2fc,
     filter_low_expression,
+    get_minimal_method_contract,
+    get_supported_formal_methods,
     read_count_matrix,
     read_metadata,
     reorder_counts_to_metadata,
@@ -47,6 +49,10 @@ _PRELIMINARY_LOG2FC_FIELDNAMES = [
     "mean_cpm_group_2",
     "log2_fold_change",
     "total_count",
+    "analysis_method",
+    "formal_statistical_test",
+    "pvalue_available",
+    "adjusted_pvalue_available",
     "analysis_note",
 ]
 
@@ -352,6 +358,7 @@ def run_minimal_bulk_rnaseq(
     output_dir_relative = output_dir.relative_to(get_output_root()).as_posix()
     generated_file_entries = _minimal_generated_file_entries(request.task_id)
     limitations = _minimal_limitations()
+    method_contract = get_minimal_method_contract()
 
     library_sizes = compute_library_sizes(counts)
     cpm = compute_cpm(counts)
@@ -383,8 +390,16 @@ def run_minimal_bulk_rnaseq(
         "finished_at": _PLACEHOLDER_TIMESTAMP,
         "duration_seconds": 0.0,
         "real_execution_performed": True,
-        "external_tools_called": False,
-        "statistical_test_performed": False,
+        "analysis_method": method_contract["analysis_method"],
+        "analysis_method_display_name": method_contract["analysis_method_display_name"],
+        "formal_de_method": method_contract["formal_de_method"],
+        "formal_de_ready": method_contract["formal_de_ready"],
+        "statistical_test_performed": method_contract["statistical_test_performed"],
+        "pvalue_available": method_contract["pvalue_available"],
+        "adjusted_pvalue_available": method_contract["adjusted_pvalue_available"],
+        "external_tools_called": method_contract["external_tools_called"],
+        "method_limitations": method_contract["method_limitations"],
+        "next_supported_formal_methods": method_contract["next_supported_formal_methods"],
         "generated_files": generated_file_entries,
         "warnings": warnings,
         "limitations": limitations,
@@ -393,6 +408,10 @@ def run_minimal_bulk_rnaseq(
         "task_id": request.task_id,
         "executor_name": executor_name,
         "execution_mode": "minimal_real",
+        "analysis_method": method_contract["analysis_method"],
+        "formal_de_ready": method_contract["formal_de_ready"],
+        "requested_formal_method": None,
+        "supported_future_formal_methods": get_supported_formal_methods(),
         "omics_type": request.omics_type,
         "project_name": request.project_name,
         "metadata_file": request.metadata_file,

@@ -36,7 +36,12 @@ from backend.app.services.execution_adapter import (
     execute_task_minimal_rnaseq,
     execute_task_placeholder,
 )
-from backend.app.services.rnaseq_minimal import MinimalRNASeqValidationError
+from backend.app.services.rnaseq_minimal import (
+    MinimalRNASeqValidationError,
+    RNASeqMethodContractError,
+    validate_requested_analysis_method,
+    validate_requested_formal_de_method,
+)
 from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
@@ -175,6 +180,12 @@ def _validate_run_mode_request(request: TaskRunRequest) -> None:
             status_code=400,
             detail="metadata_file and count_matrix_file must be supplied together.",
         )
+
+    try:
+        validate_requested_analysis_method(request.analysis_method)
+        validate_requested_formal_de_method(request.formal_de_method)
+    except RNASeqMethodContractError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
 
 
 def _minimal_artifacts_exist(task_id: str) -> bool:

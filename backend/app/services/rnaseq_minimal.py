@@ -41,6 +41,126 @@ _TOP_RANKED_GENE_COLUMNS = [
 ]
 _CPM_DECIMAL_PLACES = 4
 _LOG2FC_DECIMAL_PLACES = 4
+MINIMAL_ANALYSIS_METHOD = "minimal_cpm_log2fc"
+MINIMAL_ANALYSIS_METHOD_DISPLAY_NAME = "Minimal CPM + preliminary log2 fold-change ranking"
+FORMAL_DE_METHOD_NOT_IMPLEMENTED = "FORMAL_DE_METHOD_NOT_IMPLEMENTED"
+UNSUPPORTED_ANALYSIS_METHOD = "ANALYSIS_METHOD_NOT_SUPPORTED"
+_SUPPORTED_FUTURE_FORMAL_METHODS = ("deseq2", "edger", "limma")
+_FORMAL_METHOD_DISPLAY_NAMES = {
+    "deseq2": "DESeq2",
+    "edger": "edgeR",
+    "limma": "limma",
+}
+_MINIMAL_METHOD_LIMITATIONS = (
+    "This method computes CPM normalization and preliminary group-level log2 fold-change ranking only.",
+    "No formal DESeq2, edgeR, or limma statistical model was run.",
+    "No formal differential expression statistical test was performed.",
+    "No p-values, adjusted p-values, q-values, or false discovery rate estimates are available.",
+    "The ranking is exploratory and must not be treated as a final DEG list.",
+)
+
+
+class RNASeqMethodContractError(ValueError):
+    def __init__(
+        self,
+        *,
+        error_code: str,
+        message: str,
+        status_code: int,
+        requested_method: str,
+        errors: list[str],
+    ) -> None:
+        self.error_code = error_code
+        self.message = message
+        self.status_code = status_code
+        self.requested_method = requested_method
+        self.errors = [error for error in errors if error] or [message]
+        super().__init__(message)
+
+    def to_detail(self) -> dict:
+        return {
+            "error_code": self.error_code,
+            "message": self.message,
+            "requested_method": self.requested_method,
+            "supported_current_methods": [MINIMAL_ANALYSIS_METHOD],
+            "supported_future_formal_methods": get_supported_formal_methods(),
+            "errors": list(self.errors),
+        }
+
+
+def get_supported_formal_methods() -> list[str]:
+    return list(_SUPPORTED_FUTURE_FORMAL_METHODS)
+
+
+def get_minimal_method_contract() -> dict:
+    return {
+        "analysis_method": MINIMAL_ANALYSIS_METHOD,
+        "analysis_method_display_name": MINIMAL_ANALYSIS_METHOD_DISPLAY_NAME,
+        "formal_de_method": None,
+        "formal_de_ready": False,
+        "statistical_test_performed": False,
+        "pvalue_available": False,
+        "adjusted_pvalue_available": False,
+        "external_tools_called": False,
+        "method_limitations": list(_MINIMAL_METHOD_LIMITATIONS),
+        "next_supported_formal_methods": get_supported_formal_methods(),
+    }
+
+
+def validate_requested_analysis_method(method: str | None) -> str:
+    normalized_method = _normalize_method_name(method) or MINIMAL_ANALYSIS_METHOD
+    if normalized_method == MINIMAL_ANALYSIS_METHOD:
+        return MINIMAL_ANALYSIS_METHOD
+    if normalized_method in _SUPPORTED_FUTURE_FORMAL_METHODS:
+        raise _formal_method_not_implemented(normalized_method)
+    raise _unsupported_analysis_method()
+
+
+def validate_requested_formal_de_method(method: str | None) -> None:
+    normalized_method = _normalize_method_name(method)
+    if not normalized_method:
+        return
+    if normalized_method in _SUPPORTED_FUTURE_FORMAL_METHODS:
+        raise _formal_method_not_implemented(normalized_method)
+    raise RNASeqMethodContractError(
+        error_code=UNSUPPORTED_ANALYSIS_METHOD,
+        message="Requested formal differential expression method is not supported.",
+        status_code=422,
+        requested_method=_safe_public_method_name(normalized_method),
+        errors=[
+            "Only planned formal methods can be requested in the formal_de_method field.",
+            "DESeq2, edgeR, and limma are planned but not implemented in this phase.",
+        ],
+    )
+
+
+def _formal_method_not_implemented(method: str) -> RNASeqMethodContractError:
+    return RNASeqMethodContractError(
+        error_code=FORMAL_DE_METHOD_NOT_IMPLEMENTED,
+        message="Formal differential expression method is planned but not implemented in this phase.",
+        status_code=501,
+        requested_method=_safe_public_method_name(method),
+        errors=[
+            (
+                "Requested formal differential expression method "
+                f"{_safe_public_method_name(method)!r} is not implemented yet."
+            ),
+            "No DESeq2, edgeR, limma, Rscript, or external tool execution was started.",
+        ],
+    )
+
+
+def _unsupported_analysis_method() -> RNASeqMethodContractError:
+    return RNASeqMethodContractError(
+        error_code=UNSUPPORTED_ANALYSIS_METHOD,
+        message="Requested analysis method is not supported by this execution contract.",
+        status_code=422,
+        requested_method="unsupported",
+        errors=[
+            f"Current supported analysis method: {MINIMAL_ANALYSIS_METHOD}.",
+            "Future formal methods planned but not implemented: deseq2, edger, limma.",
+        ],
+    )
 
 
 class MinimalRNASeqValidationError(ValueError):
@@ -471,6 +591,10 @@ def compute_preliminary_log2fc(counts_or_cpm: CountMatrix, metadata: list[dict])
                 "mean_cpm_group_2": mean_group_2,
                 "log2_fold_change": log2_fold_change,
                 "total_count": _raw_total_for_gene(counts_or_cpm, gene_id),
+                "analysis_method": MINIMAL_ANALYSIS_METHOD,
+                "formal_statistical_test": False,
+                "pvalue_available": False,
+                "adjusted_pvalue_available": False,
                 "analysis_note": note,
             }
         )
@@ -513,9 +637,20 @@ def build_report_payload(
     generated_files: list[dict] | None = None,
     preliminary_rows: list[dict] | None = None,
 ) -> dict:
+    method_contract = get_minimal_method_contract()
     return {
         "task_id": str(task_id),
         "execution_mode": str(execution_mode),
+        "analysis_method": method_contract["analysis_method"],
+        "analysis_method_display_name": method_contract["analysis_method_display_name"],
+        "formal_de_method": method_contract["formal_de_method"],
+        "formal_de_ready": method_contract["formal_de_ready"],
+        "statistical_test_performed": method_contract["statistical_test_performed"],
+        "pvalue_available": method_contract["pvalue_available"],
+        "adjusted_pvalue_available": method_contract["adjusted_pvalue_available"],
+        "external_tools_called": method_contract["external_tools_called"],
+        "method_limitations": list(method_contract["method_limitations"]),
+        "next_supported_formal_methods": list(method_contract["next_supported_formal_methods"]),
         "metadata_file": _safe_relative_path(metadata_file),
         "count_matrix_file": _safe_relative_path(count_matrix_file),
         "sample_count": int(sample_count),
@@ -606,6 +741,24 @@ def write_markdown_report(path: Path, payload: dict) -> None:
         "- Generated artifacts: "
         + ", ".join(f"`{artifact['name']}`" for artifact in generated_artifacts),
         "",
+        "## Analysis method contract",
+        "",
+        f"- Current method: `{payload['analysis_method']}`",
+        f"- Formal DE method: {_format_formal_de_method(payload['formal_de_method'])}",
+        (
+            "- Statistical test performed: "
+            f"{_format_bool(payload['statistical_test_performed'])}"
+        ),
+        f"- P-values available: {_format_bool(payload['pvalue_available'])}",
+        (
+            "- Adjusted p-values available: "
+            f"{_format_bool(payload['adjusted_pvalue_available'])}"
+        ),
+        (
+            "- Future formal methods planned: "
+            f"{_format_supported_formal_methods(payload['next_supported_formal_methods'])}"
+        ),
+        "",
         "## Input validation summary",
         "",
         f"- Metadata file was validated: `{payload['metadata_file']}`",
@@ -678,9 +831,43 @@ def write_markdown_report(path: Path, payload: dict) -> None:
 
 
 def _normalize_report_payload(payload: dict) -> dict:
+    method_contract = get_minimal_method_contract()
     return {
         "task_id": str(payload.get("task_id", "unknown")),
         "execution_mode": str(payload.get("execution_mode", "minimal_real")),
+        "analysis_method": str(
+            payload.get("analysis_method") or method_contract["analysis_method"]
+        ),
+        "analysis_method_display_name": str(
+            payload.get("analysis_method_display_name")
+            or method_contract["analysis_method_display_name"]
+        ),
+        "formal_de_method": payload.get("formal_de_method"),
+        "formal_de_ready": bool(
+            payload.get("formal_de_ready", method_contract["formal_de_ready"])
+        ),
+        "statistical_test_performed": bool(
+            payload.get(
+                "statistical_test_performed",
+                method_contract["statistical_test_performed"],
+            )
+        ),
+        "pvalue_available": bool(
+            payload.get("pvalue_available", method_contract["pvalue_available"])
+        ),
+        "adjusted_pvalue_available": bool(
+            payload.get(
+                "adjusted_pvalue_available",
+                method_contract["adjusted_pvalue_available"],
+            )
+        ),
+        "external_tools_called": bool(
+            payload.get("external_tools_called", method_contract["external_tools_called"])
+        ),
+        "method_limitations": payload.get("method_limitations")
+        or list(method_contract["method_limitations"]),
+        "next_supported_formal_methods": payload.get("next_supported_formal_methods")
+        or list(method_contract["next_supported_formal_methods"]),
         "metadata_file": _safe_relative_path(payload.get("metadata_file", "metadata.csv")),
         "count_matrix_file": _safe_relative_path(
             payload.get("count_matrix_file", "counts.csv")
@@ -756,6 +943,28 @@ def _format_condition_counts(condition_counts: dict[str, int]) -> str:
         f"{condition}={sample_count}"
         for condition, sample_count in condition_counts.items()
     )
+
+
+def _format_bool(value: object) -> str:
+    return "true" if bool(value) else "false"
+
+
+def _format_formal_de_method(value: object) -> str:
+    normalized_method = _normalize_method_name(value)
+    if not normalized_method:
+        return "not run"
+    return _FORMAL_METHOD_DISPLAY_NAMES.get(normalized_method, normalized_method)
+
+
+def _format_supported_formal_methods(methods: object) -> str:
+    if not isinstance(methods, list):
+        methods = get_supported_formal_methods()
+    display_names = [
+        _FORMAL_METHOD_DISPLAY_NAMES.get(_normalize_method_name(method), str(method))
+        for method in methods
+        if _normalize_method_name(method)
+    ]
+    return ", ".join(display_names) if display_names else "none"
 
 
 def _safe_relative_path(value: object) -> str:
@@ -845,6 +1054,17 @@ def _unique_preserving_first_seen(values: list[str]) -> list[str]:
     return unique_values
 
 
+def _normalize_method_name(method: object) -> str:
+    return "" if method is None else str(method).strip().lower()
+
+
+def _safe_public_method_name(method: object) -> str:
+    normalized_method = _normalize_method_name(method)
+    if normalized_method in {MINIMAL_ANALYSIS_METHOD, *_SUPPORTED_FUTURE_FORMAL_METHODS}:
+        return normalized_method
+    return "unsupported"
+
+
 def _gene_totals(
     gene_ids: list[str],
     sample_ids: list[str],
@@ -886,6 +1106,8 @@ def _mean(values: object) -> float:
 
 
 def _format_value(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
     if isinstance(value, float):
         if math.isfinite(value) and value.is_integer():
             return str(int(value))

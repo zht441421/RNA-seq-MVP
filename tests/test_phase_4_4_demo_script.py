@@ -19,6 +19,10 @@ FORBIDDEN_GENERATED_FRAGMENTS = (
     "qvalue",
     "significant",
 )
+ALLOWED_METHOD_METADATA_FRAGMENTS = (
+    "pvalue_available",
+    "adjusted_pvalue_available",
+)
 FORBIDDEN_PUBLIC_FRAGMENTS = (
     "d:\\",
     "c:\\",
@@ -63,6 +67,8 @@ def test_phase_4_4_demo_script_runs_and_generates_expected_artifacts(
 
     for artifact_name in EXPECTED_ARTIFACTS:
         text = (artifact_dir / artifact_name).read_text(encoding="utf-8").lower()
+        for allowed_fragment in ALLOWED_METHOD_METADATA_FRAGMENTS:
+            text = text.replace(allowed_fragment, "")
         for forbidden_fragment in FORBIDDEN_GENERATED_FRAGMENTS:
             assert forbidden_fragment not in text
 

@@ -245,6 +245,8 @@ def test_report_payload_uses_safe_paths_and_excludes_forbidden_statistical_field
     )
 
     payload_text = json.dumps(payload, sort_keys=True).lower()
+    for allowed_fragment in ("pvalue_available", "adjusted_pvalue_available"):
+        payload_text = payload_text.replace(allowed_fragment, "")
 
     assert payload["metadata_file"] == "metadata.csv"
     assert payload["count_matrix_file"] == "counts.csv"

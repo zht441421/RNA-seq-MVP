@@ -23,8 +23,14 @@ FORBIDDEN_RESULT_CLAIMS = (
     "pvalue",
     "padj",
     "qvalue",
+    "significant",
+    "fdr",
     "enrichment",
     "pathway",
+)
+ALLOWED_METHOD_METADATA_FRAGMENTS = (
+    "pvalue_available",
+    "adjusted_pvalue_available",
 )
 
 
@@ -116,6 +122,8 @@ def _assert_no_forbidden_public_fragments(body: object) -> None:
 
 def _assert_no_forbidden_result_claims(path: Path) -> None:
     text = path.read_text(encoding="utf-8").lower()
+    for allowed_fragment in ALLOWED_METHOD_METADATA_FRAGMENTS:
+        text = text.replace(allowed_fragment, "")
     assert all(fragment not in text for fragment in FORBIDDEN_RESULT_CLAIMS)
 
 
@@ -173,6 +181,7 @@ def test_task_run_minimal_rnaseq_writes_real_artifacts(
         _assert_no_forbidden_result_claims(output_dir / filename)
 
     qc_summary = json.loads((output_dir / "qc_summary.json").read_text(encoding="utf-8"))
+    run_manifest = json.loads((output_dir / "run_manifest.json").read_text(encoding="utf-8"))
     execution_summary = json.loads(
         (output_dir / "execution_summary.json").read_text(encoding="utf-8")
     )
@@ -186,7 +195,29 @@ def test_task_run_minimal_rnaseq_writes_real_artifacts(
     assert qc_summary["sample_count"] == 4
     assert qc_summary["gene_count"] == 3
     assert qc_summary["retained_gene_count_after_filtering"] == 2
+    assert run_manifest["analysis_method"] == "minimal_cpm_log2fc"
+    assert run_manifest["execution_mode"] == "minimal_real"
+    assert run_manifest["formal_de_ready"] is False
+    assert run_manifest["requested_formal_method"] is None
+    assert run_manifest["supported_future_formal_methods"] == ["deseq2", "edger", "limma"]
+    assert execution_summary["analysis_method"] == "minimal_cpm_log2fc"
+    assert (
+        execution_summary["analysis_method_display_name"]
+        == "Minimal CPM + preliminary log2 fold-change ranking"
+    )
+    assert execution_summary["formal_de_method"] is None
+    assert execution_summary["formal_de_ready"] is False
     assert execution_summary["real_execution_performed"] is True
     assert execution_summary["external_tools_called"] is False
     assert execution_summary["statistical_test_performed"] is False
-    assert {"pvalue", "padj", "qvalue"}.isdisjoint(result_fieldnames)
+    assert execution_summary["pvalue_available"] is False
+    assert execution_summary["adjusted_pvalue_available"] is False
+    assert execution_summary["method_limitations"]
+    assert execution_summary["next_supported_formal_methods"] == ["deseq2", "edger", "limma"]
+    assert {
+        "analysis_method",
+        "formal_statistical_test",
+        "pvalue_available",
+        "adjusted_pvalue_available",
+    }.issubset(result_fieldnames)
+    assert {"pvalue", "padj", "qvalue", "significant", "FDR"}.isdisjoint(result_fieldnames)
