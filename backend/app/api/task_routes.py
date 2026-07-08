@@ -39,6 +39,10 @@ from backend.app.services.artifact_download import (
     ArtifactDownloadError,
     get_artifact_download_payload,
 )
+from backend.app.services.coze_summary import (
+    CozeSummaryError,
+    build_coze_task_summary,
+)
 from backend.app.services.deseq2_execution import (
     DESEQ2_ANALYSIS_METHOD,
     Deseq2ExecutionError,
@@ -319,6 +323,14 @@ def get_formal_de_preflight() -> FormalDEPreflightResponse:
         errors=preflight["errors"],
         limitations=preflight["limitations"],
     )
+
+
+@router.get("/{task_id}/coze-summary")
+def get_task_coze_summary(task_id: str) -> dict:
+    try:
+        return build_coze_task_summary(task_id)
+    except CozeSummaryError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
 
 
 @router.post("/plan", response_model=AnalysisPlanResponse, response_model_exclude_none=True)

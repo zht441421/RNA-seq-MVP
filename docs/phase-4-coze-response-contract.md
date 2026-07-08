@@ -4,6 +4,9 @@ This document defines a safe structured response contract for future Coze-facing
 layers that summarize Bulk RNA-seq task results. It is a documentation-only
 contract in Phase 4.8. No Coze API call is implemented.
 
+Phase 5.3 introduces `GET /task/{task_id}/coze-summary` as the preferred
+structured response source for Coze and front-end task summaries.
+
 ## Recommended Fields
 
 A Coze response payload should include:

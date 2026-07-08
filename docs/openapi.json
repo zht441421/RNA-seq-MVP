@@ -115,6 +115,50 @@
         }
       }
     },
+    "/task/{task_id}/coze-summary": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Get Task Coze Summary",
+        "operationId": "get_task_coze_summary_task__task_id__coze_summary_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Task Coze Summary Task  Task Id  Coze Summary Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/plan": {
       "post": {
         "tags": [

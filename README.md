@@ -45,6 +45,9 @@ Phase 5.2 adds `GET /task/{task_id}/artifacts/{artifact_name}/download` for
 safe, task-scoped artifact downloads; see
 `docs/phase-5-artifact-download-contract.md`.
 
+Phase 5.3 adds `GET /task/{task_id}/coze-summary` for safe structured
+task-result summaries intended for Coze and front-end consumption.
+
 Phase 1 has been validated and tagged as:
 
 ```text
