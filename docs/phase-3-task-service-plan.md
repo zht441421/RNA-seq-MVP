@@ -282,8 +282,47 @@ the existing `path` field and uses `available` to reflect whether a planned file
 currently exists. It does not expose local absolute filesystem paths in public
 responses and does not write any artifact files.
 
-Future Phase 3.6 work should introduce an execution adapter boundary before any
-real runner, queue, workflow engine, or RNA-seq computation is wired in.
+The execution adapter boundary is introduced in Phase 3.6 before any real
+runner, queue, workflow engine, or RNA-seq computation is wired in.
+
+## Phase 3.6 Execution Adapter Foundation
+
+Phase 3.6 adds an internal execution adapter service for future RNA-seq task
+execution. The service lives in `backend/app/services/execution_adapter.py` and
+defines:
+
+- `ExecutionRequest`
+- `ExecutionResult`
+- `ExecutorProtocol`
+- `PlaceholderRNASeqExecutor`
+- `get_executor()`
+- `execute_task_placeholder()`
+
+The placeholder executor name is `placeholder_rnaseq_executor`. It is
+deterministic and returns fixed placeholder timing, planned artifact specs from
+the Phase 3.5 artifact contract, messages, warnings, and limitations.
+
+`POST /task/run` now calls the placeholder execution adapter after the
+registry-backed transition to `run_placeholder_ready` succeeds. The endpoint
+keeps the existing public response model and includes planned safe relative
+artifact paths in the existing `artifacts` field. It does not expose local
+absolute filesystem paths.
+
+The placeholder executor may create the task-scoped output directory:
+
+```text
+tasks/<task_id>/
+```
+
+It does not create biological result files, report files, execution logs, or
+database records. It also does not call external tools or services: no Rscript,
+Docker, shell scripts, Snakemake, Nextflow, Coze service, DESeq2, edgeR, limma,
+FastQC, MultiQC, or enrichment analysis is invoked.
+
+The adapter is a boundary for future work only. Future Phase 3.7 should add
+explicit dry-run execution behavior, and future Phase 4.1 should connect a real
+minimal Bulk RNA-seq workflow only after validation, artifact, runner, and
+persistence boundaries are designed and tested.
 
 ## Known Limitations
 
@@ -300,10 +339,14 @@ real runner, queue, workflow engine, or RNA-seq computation is wired in.
   does not parse file contents or validate RNA-seq schemas yet.
 - Artifact path handling defines safe planned output locations only; it does
   not generate artifact files or real biological results.
+- The execution adapter is placeholder-only; it may create the task output
+  directory but does not generate real files or call external tools.
 
 ## Next Recommended Phases
 
-- Introduce an execution adapter interface with mock and dry-run backends first.
+- Add explicit dry-run execution behavior on top of the adapter interface.
+- Connect a real minimal Bulk RNA-seq workflow only after the dry-run boundary
+  is tested.
 - Only later integrate real RNA-seq tools after state, validation, artifact,
   and execution adapter contracts are tested.
 - Any production execution path must be designed separately with controlled

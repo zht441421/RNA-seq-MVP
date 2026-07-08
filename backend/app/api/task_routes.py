@@ -27,6 +27,7 @@ from backend.app.models.task import (
     TaskValidateInputsResponse,
 )
 from backend.app.services.artifact_paths import list_placeholder_artifact_specs
+from backend.app.services.execution_adapter import ExecutionResult, execute_task_placeholder
 from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
@@ -91,6 +92,20 @@ def _input_file_response(
         valid=result.valid,
         errors=result.errors,
     )
+
+
+def _run_artifacts(execution_result: ExecutionResult) -> list[dict]:
+    return [
+        {
+            "name": artifact["name"],
+            "artifact_type": artifact["artifact_type"],
+            "path": artifact["relative_path"],
+            "available": artifact["exists"],
+            "executor_name": execution_result.executor_name,
+            "description": artifact["description"],
+        }
+        for artifact in execution_result.planned_artifacts
+    ]
 
 
 @router.post("/create", response_model=TaskResponse)
@@ -247,6 +262,11 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             "No real RNA-seq analysis was performed."
         ),
     )
+    task = _get_registry_task_or_404(request.task_id)
+    execution_result = execute_task_placeholder(
+        task_id=request.task_id,
+        registry_record=task,
+    )
 
     return TaskRunResponse(
         task_id=request.task_id,
@@ -272,10 +292,11 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 message="DESeq2, edgeR, and limma execution are not implemented yet.",
             ),
         ],
-        artifacts=[],
+        artifacts=_run_artifacts(execution_result),
         limitations=[
+            *execution_result.limitations,
             "This endpoint does not run real RNA-seq analysis.",
-            "No files are read or written.",
+            "No biological result files are read or written.",
             "No statistical or biological conclusion should be drawn from this placeholder response.",
         ],
     )
