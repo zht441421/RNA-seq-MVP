@@ -10,6 +10,12 @@ Phase 4.2 strengthens the input content validation layer so invalid metadata or
 count matrices fail deterministically before any analysis artifacts are
 generated.
 
+Phase 4.3 improves the human-readable `report.md` artifact. The report now
+summarizes the analyzed inputs, validation checks, QC metrics, CPM
+normalization, preliminary log2 fold-change ranking, generated artifacts,
+limitations, and recommended next steps. This is a reporting-only improvement;
+it does not add formal differential expression statistics.
+
 This phase is intentionally modest. It does not implement a formal
 differential expression statistical method and does not report p-values or
 adjusted p-values.
@@ -194,6 +200,44 @@ The log2 fold-change is computed from group mean CPM values with a +1 CPM
 pseudocount for deterministic finite output. Group 1 and group 2 follow the
 first-seen condition order in `metadata.csv`, and the `analysis_note` records
 the mapping for each row.
+
+## Phase 4.3 Enhanced Report
+
+`report.md` is structured for cautious human review of the minimal MVP outputs.
+It includes:
+
+- Analysis summary with `task_id`, execution mode, sample count, gene count,
+  retained gene count, condition groups, and generated artifacts.
+- Input validation summary for metadata validation, count matrix validation,
+  required columns, and sample ID alignment.
+- QC summary with library sizes per sample, condition counts, and the
+  low-expression filter threshold.
+- Normalization summary explaining that CPM is library-size normalization and
+  does not replace formal differential expression modeling.
+- Preliminary log2 fold-change section explaining that ranking is based on
+  group-level mean CPM comparison for exactly two conditions.
+- A small deterministic table of top preliminary ranked genes by absolute
+  log2 fold change.
+- Generated artifact list using safe relative paths.
+- Limitations and recommended next steps.
+
+The top ranked genes are exploratory only. They can help users inspect large
+group-level CPM differences before a formal method is added, but they are not
+publication-level differential expression results.
+
+Phase 4.3 keeps the interpretation boundaries explicit:
+
+- No DESeq2, edgeR, or limma analysis is run yet.
+- No formal statistical test is performed yet.
+- No p-values, adjusted p-values, or q-values are produced yet.
+- No batch correction is performed yet.
+- No enrichment analysis is performed yet.
+- No pathway analysis is performed yet.
+
+Before formal differential expression analysis, users should verify sample
+metadata design, inspect QC metrics, confirm biological replicates, and consider
+batch design. Future phases may add DESeq2, edgeR, or limma support after those
+analysis boundaries are implemented.
 
 ## Limitations
 

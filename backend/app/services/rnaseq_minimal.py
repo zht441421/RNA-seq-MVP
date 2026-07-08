@@ -2,7 +2,7 @@ import csv
 import json
 import math
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,25 @@ class CountMatrix:
     values: dict[str, dict[str, float]]
     gene_id_column: str = "gene_id"
     raw_total_counts: dict[str, float] = field(default_factory=dict)
+
+
+_REPORT_ARTIFACTS = [
+    "run_manifest.json",
+    "execution_summary.json",
+    "qc_summary.json",
+    "normalized_counts_cpm.csv",
+    "differential_expression_results.csv",
+    "report.md",
+]
+_TOP_RANKED_GENE_COLUMNS = [
+    "gene_id",
+    "mean_cpm_group_1",
+    "mean_cpm_group_2",
+    "log2_fold_change",
+    "total_count",
+]
+_CPM_DECIMAL_PLACES = 4
+_LOG2FC_DECIMAL_PLACES = 4
 
 
 class MinimalRNASeqValidationError(ValueError):
@@ -479,39 +498,308 @@ def write_json(path: Path, payload: dict) -> None:
     )
 
 
+def build_report_payload(
+    *,
+    task_id: str,
+    execution_mode: str,
+    metadata_file: str,
+    count_matrix_file: str,
+    sample_count: int,
+    gene_count: int,
+    retained_gene_count_after_filtering: int,
+    condition_counts: dict,
+    library_sizes: dict,
+    min_total_count_filter: int,
+    generated_files: list[dict] | None = None,
+    preliminary_rows: list[dict] | None = None,
+) -> dict:
+    return {
+        "task_id": str(task_id),
+        "execution_mode": str(execution_mode),
+        "metadata_file": _safe_relative_path(metadata_file),
+        "count_matrix_file": _safe_relative_path(count_matrix_file),
+        "sample_count": int(sample_count),
+        "gene_count": int(gene_count),
+        "retained_gene_count_after_filtering": int(retained_gene_count_after_filtering),
+        "condition_counts": _normalized_condition_counts(condition_counts),
+        "library_sizes": _normalized_library_sizes(library_sizes),
+        "min_total_count_filter": int(min_total_count_filter),
+        "generated_artifacts": _report_generated_artifacts(generated_files or []),
+        "top_preliminary_ranked_genes": summarize_top_ranked_genes(preliminary_rows or []),
+        "limitations": _default_report_limitations(),
+    }
+
+
+def summarize_top_ranked_genes(rows: list[dict], limit: int = 5) -> list[dict]:
+    if limit <= 0:
+        return []
+
+    ranked_rows = sorted(
+        rows,
+        key=lambda row: (
+            -abs(_safe_float(row.get("log2_fold_change"))),
+            str(row.get("gene_id", "")),
+        ),
+    )
+    return [
+        {
+            "gene_id": str(row.get("gene_id", "")),
+            "mean_cpm_group_1": _format_decimal(
+                row.get("mean_cpm_group_1", 0.0),
+                _CPM_DECIMAL_PLACES,
+            ),
+            "mean_cpm_group_2": _format_decimal(
+                row.get("mean_cpm_group_2", 0.0),
+                _CPM_DECIMAL_PLACES,
+            ),
+            "log2_fold_change": _format_decimal(
+                row.get("log2_fold_change", 0.0),
+                _LOG2FC_DECIMAL_PLACES,
+            ),
+            "total_count": _format_count_number(row.get("total_count", 0.0)),
+        }
+        for row in ranked_rows[:limit]
+    ]
+
+
+def format_markdown_table(columns: list[str], rows: list[dict]) -> str:
+    header = "| " + " | ".join(columns) + " |"
+    separator = "| " + " | ".join(["---"] * len(columns)) + " |"
+    body = [
+        "| "
+        + " | ".join(_format_markdown_cell(row.get(column, "")) for column in columns)
+        + " |"
+        for row in rows
+    ]
+    return "\n".join([header, separator, *body])
+
+
 def write_markdown_report(path: Path, payload: dict) -> None:
+    payload = _normalize_report_payload(payload)
+    generated_artifacts = payload["generated_artifacts"]
+    top_ranked_genes = payload["top_preliminary_ranked_genes"]
+    library_size_rows = [
+        {"sample_id": sample_id, "library_size": _format_count_number(library_size)}
+        for sample_id, library_size in payload["library_sizes"].items()
+    ]
+    condition_count_rows = [
+        {"condition": condition, "sample_count": sample_count}
+        for condition, sample_count in payload["condition_counts"].items()
+    ]
+
     lines = [
-        "# Minimal Bulk RNA-seq MVP Analysis",
+        "# Minimal Bulk RNA-seq MVP Report",
         "",
-        "This is a minimal Bulk RNA-seq MVP analysis.",
+        "## Analysis summary",
         "",
-        "CPM normalization and preliminary log2 fold-change ranking were computed.",
-        "",
-        "No formal differential expression statistical test was performed.",
-        "",
-        "No p-values or adjusted p-values are reported.",
-        "",
-        "Results are not a substitute for DESeq2/edgeR/limma.",
-        "",
-        "## Inputs",
-        "",
+        f"- task_id: `{payload['task_id']}`",
+        f"- Execution mode: `{payload['execution_mode']}`",
         f"- Metadata file: `{payload['metadata_file']}`",
         f"- Count matrix file: `{payload['count_matrix_file']}`",
+        f"- Sample count: {payload['sample_count']}",
+        f"- Gene count: {payload['gene_count']}",
+        (
+            "- Retained gene count after filtering: "
+            f"{payload['retained_gene_count_after_filtering']}"
+        ),
+        f"- Condition groups: {_format_condition_counts(payload['condition_counts'])}",
+        "- Generated artifacts: "
+        + ", ".join(f"`{artifact['name']}`" for artifact in generated_artifacts),
         "",
-        "## QC Summary",
+        "## Input validation summary",
         "",
-        f"- Samples: {payload['sample_count']}",
-        f"- Genes: {payload['gene_count']}",
-        f"- Genes retained after low-count filter: {payload['retained_gene_count_after_filtering']}",
-        f"- Minimum total count filter: {payload['min_total_count_filter']}",
+        f"- Metadata file was validated: `{payload['metadata_file']}`",
+        f"- Count matrix file was validated: `{payload['count_matrix_file']}`",
+        "- Sample IDs were aligned between metadata and count matrix.",
+        "- Required metadata columns (`sample_id`, `condition`) and count matrix first column (`gene_id`) were present.",
+        "- No formal statistical model was fitted.",
+        "",
+        "## QC summary",
+        "",
+        f"- Sample count: {payload['sample_count']}",
+        f"- Gene count: {payload['gene_count']}",
+        (
+            "- Retained gene count after filtering: "
+            f"{payload['retained_gene_count_after_filtering']}"
+        ),
+        f"- Low-expression filter threshold: total count >= {payload['min_total_count_filter']}",
+        "",
+        "Library sizes per sample:",
+        "",
+        format_markdown_table(["sample_id", "library_size"], library_size_rows),
+        "",
+        "Condition counts:",
+        "",
+        format_markdown_table(["condition", "sample_count"], condition_count_rows),
+        "",
+        "## Normalization summary",
+        "",
+        "- CPM normalization was computed.",
+        "- CPM is library-size normalization: counts are scaled by each sample library size to counts per million.",
+        "- CPM does not replace formal differential expression modeling.",
+        "",
+        "## Preliminary log2 fold-change ranking",
+        "",
+        "- Ranking is based on group-level mean CPM comparison.",
+        "- Exactly two conditions are supported.",
+        "- No formal statistical test was performed.",
+        "- No p-values or adjusted p-values are reported.",
+        "- Users should not label this table as a final DEG list.",
+        "",
+        "## Top preliminary ranked genes",
+        "",
+        *(
+            format_markdown_table(_TOP_RANKED_GENE_COLUMNS, top_ranked_genes).splitlines()
+            if top_ranked_genes
+            else ["No preliminary ranked genes were available after filtering."]
+        ),
+        "",
+        "## Generated artifacts",
+        "",
+        *[
+            f"- `{artifact['name']}`: `{artifact['relative_path']}`"
+            for artifact in generated_artifacts
+        ],
         "",
         "## Limitations",
         "",
         *[f"- {limitation}" for limitation in payload["limitations"]],
         "",
+        "## Recommended next steps",
+        "",
+        "- Verify the sample metadata design.",
+        "- Inspect QC metrics before interpreting the ranking.",
+        "- Proceed to formal DESeq2, edgeR, or limma analysis in future phases.",
+        "- Consider biological replicates and batch design before formal statistics.",
+        "",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _normalize_report_payload(payload: dict) -> dict:
+    return {
+        "task_id": str(payload.get("task_id", "unknown")),
+        "execution_mode": str(payload.get("execution_mode", "minimal_real")),
+        "metadata_file": _safe_relative_path(payload.get("metadata_file", "metadata.csv")),
+        "count_matrix_file": _safe_relative_path(
+            payload.get("count_matrix_file", "counts.csv")
+        ),
+        "sample_count": int(payload.get("sample_count", 0)),
+        "gene_count": int(payload.get("gene_count", 0)),
+        "retained_gene_count_after_filtering": int(
+            payload.get("retained_gene_count_after_filtering", 0)
+        ),
+        "condition_counts": _normalized_condition_counts(
+            payload.get("condition_counts", {})
+        ),
+        "library_sizes": _normalized_library_sizes(payload.get("library_sizes", {})),
+        "min_total_count_filter": int(payload.get("min_total_count_filter", 0)),
+        "generated_artifacts": payload.get("generated_artifacts")
+        or _report_generated_artifacts(payload.get("generated_files", [])),
+        "top_preliminary_ranked_genes": payload.get("top_preliminary_ranked_genes")
+        or summarize_top_ranked_genes(payload.get("preliminary_rows", [])),
+        "limitations": payload.get("limitations") or _default_report_limitations(),
+    }
+
+
+def _report_generated_artifacts(generated_files: list[dict]) -> list[dict]:
+    entries_by_name = {
+        str(entry.get("name", "")): entry
+        for entry in generated_files
+        if str(entry.get("name", "")) in _REPORT_ARTIFACTS
+    }
+    artifacts: list[dict] = []
+    for artifact_name in _REPORT_ARTIFACTS:
+        entry = entries_by_name.get(artifact_name, {})
+        artifacts.append(
+            {
+                "name": artifact_name,
+                "relative_path": _safe_relative_path(
+                    entry.get("relative_path") or artifact_name
+                ),
+            }
+        )
+    return artifacts
+
+
+def _default_report_limitations() -> list[str]:
+    return [
+        "No DESeq2, edgeR, or limma was run.",
+        "No statistical test was performed.",
+        "No p-values or adjusted p-values are available.",
+        "No batch correction was performed.",
+        "No GO/KEGG gene-set analysis was performed.",
+        "Preliminary log2FC ranking is exploratory only.",
+        "Results are not suitable for publication-level differential expression claims.",
+    ]
+
+
+def _normalized_condition_counts(condition_counts: dict) -> dict[str, int]:
+    return {
+        str(condition): int(count)
+        for condition, count in condition_counts.items()
+    }
+
+
+def _normalized_library_sizes(library_sizes: dict) -> dict[str, float]:
+    return {
+        str(sample_id): _safe_float(library_size)
+        for sample_id, library_size in library_sizes.items()
+    }
+
+
+def _format_condition_counts(condition_counts: dict[str, int]) -> str:
+    if not condition_counts:
+        return "none"
+    return ", ".join(
+        f"{condition}={sample_count}"
+        for condition, sample_count in condition_counts.items()
+    )
+
+
+def _safe_relative_path(value: object) -> str:
+    path_text = str(value or "").strip().replace("\\", "/")
+    if not path_text:
+        return ""
+
+    posix_path = PurePosixPath(path_text)
+    windows_path = PureWindowsPath(path_text)
+    if (
+        posix_path.is_absolute()
+        or windows_path.is_absolute()
+        or windows_path.drive
+        or ".." in posix_path.parts
+        or ".." in windows_path.parts
+    ):
+        return PurePosixPath(path_text).name or "redacted"
+    return posix_path.as_posix()
+
+
+def _format_markdown_cell(value: object) -> str:
+    return str(value).replace("\n", " ").replace("|", "\\|")
+
+
+def _safe_float(value: object) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return number if math.isfinite(number) else 0.0
+
+
+def _format_decimal(value: object, decimal_places: int) -> str:
+    number = _safe_float(value)
+    if abs(number) < 0.5 * (10 ** -decimal_places):
+        number = 0.0
+    return f"{number:.{decimal_places}f}"
+
+
+def _format_count_number(value: object) -> str:
+    number = _safe_float(value)
+    if number.is_integer():
+        return str(int(number))
+    return _format_decimal(number, _CPM_DECIMAL_PLACES)
 
 
 def _delimiter_for_path(path: Path) -> str:

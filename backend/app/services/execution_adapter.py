@@ -15,6 +15,7 @@ from backend.app.services.artifact_paths import (
 from backend.app.services.input_validation import validate_rnaseq_input_files
 from backend.app.services.rnaseq_minimal import (
     CountMatrix,
+    build_report_payload,
     build_validation_error,
     compute_cpm,
     compute_library_sizes,
@@ -400,15 +401,20 @@ def run_minimal_bulk_rnaseq(
         "generated_files": generated_file_entries,
         "limitations": limitations,
     }
-    report_payload = {
-        "metadata_file": request.metadata_file,
-        "count_matrix_file": request.count_matrix_file,
-        "sample_count": len(counts.sample_ids),
-        "gene_count": len(counts.gene_ids),
-        "retained_gene_count_after_filtering": len(filtered_cpm.gene_ids),
-        "min_total_count_filter": _MINIMAL_LOW_COUNT_FILTER,
-        "limitations": limitations,
-    }
+    report_payload = build_report_payload(
+        task_id=request.task_id,
+        execution_mode="minimal_real",
+        metadata_file=request.metadata_file,
+        count_matrix_file=request.count_matrix_file,
+        sample_count=len(counts.sample_ids),
+        gene_count=len(counts.gene_ids),
+        retained_gene_count_after_filtering=len(filtered_cpm.gene_ids),
+        condition_counts=condition_counts,
+        library_sizes=library_sizes,
+        min_total_count_filter=_MINIMAL_LOW_COUNT_FILTER,
+        generated_files=generated_file_entries,
+        preliminary_rows=preliminary_rows,
+    )
 
     write_json(resolve_task_artifact_path(request.task_id, "run_manifest.json"), run_manifest)
     write_json(
