@@ -100,6 +100,38 @@ _MINIMAL_RNASEQ_ARTIFACTS = [
     },
 ]
 
+_DESEQ2_ARTIFACTS = [
+    {
+        "name": "deseq2_results.csv",
+        "artifact_type": "deseq2_results",
+        "description": (
+            "DESeq2 formal differential expression results with pvalue and padj columns; "
+            "minimal_cpm_log2fc output remains preliminary if present."
+        ),
+    },
+    {
+        "name": "deseq2_summary.json",
+        "artifact_type": "deseq2_execution_summary",
+        "description": (
+            "Generated DESeq2 execution summary with formal method contract fields."
+        ),
+    },
+    {
+        "name": "deseq2_run_manifest.json",
+        "artifact_type": "deseq2_run_manifest",
+        "description": (
+            "Generated manifest for the gated DESeq2 Rscript execution."
+        ),
+    },
+    {
+        "name": "report.md",
+        "artifact_type": "deseq2_analysis_report",
+        "description": (
+            "Generated report describing the DESeq2 formal differential expression run."
+        ),
+    },
+]
+
 
 def get_output_root() -> Path:
     configured_root = os.environ.get("BIOINFO_OUTPUT_ROOT", "").strip()
@@ -211,6 +243,31 @@ def list_minimal_rnaseq_artifact_specs(task_id: str) -> list[dict]:
                     "This file is produced by the minimal real Bulk RNA-seq MVP executor.",
                     "The analysis is limited to QC metrics, CPM normalization, and preliminary ranking.",
                     "No formal differential expression statistical test is represented by this artifact.",
+                ],
+            }
+        )
+    return specs
+
+
+def list_deseq2_artifact_specs(task_id: str) -> list[dict]:
+    specs: list[dict] = []
+    for artifact in _DESEQ2_ARTIFACTS:
+        filename = artifact["name"]
+        specs.append(
+            {
+                "name": filename,
+                "relative_path": get_task_artifact_relative_path(task_id, filename),
+                "artifact_type": artifact["artifact_type"],
+                "exists": resolve_task_artifact_path(task_id, filename).is_file(),
+                "description": artifact["description"],
+                "limitations": [
+                    "This file is produced by the gated DESeq2 formal differential expression executor.",
+                    "pvalue and padj are available only in DESeq2 output artifacts.",
+                    (
+                        "minimal_cpm_log2fc artifacts remain preliminary if present "
+                        "and are not formal differential expression statistics."
+                    ),
+                    "No GO/KEGG/GSEA enrichment output is represented by this artifact.",
                 ],
             }
         )

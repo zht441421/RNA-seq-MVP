@@ -5,7 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
-from backend.app.services.task_registry import get_task, reset_registry
+from backend.app.services import deseq2_execution
+from backend.app.services.formal_de_preflight import CommandResult
+from backend.app.services.task_registry import reset_registry
 
 
 FORBIDDEN_PUBLIC_FRAGMENTS = (
@@ -18,14 +20,6 @@ FORBIDDEN_PUBLIC_FRAGMENTS = (
     "password",
     "secret",
 )
-ANALYSIS_OUTPUT_FILES = (
-    "run_manifest.json",
-    "execution_summary.json",
-    "qc_summary.json",
-    "normalized_counts_cpm.csv",
-    "differential_expression_results.csv",
-    "report.md",
-)
 
 
 @pytest.fixture(autouse=True)
@@ -33,6 +27,11 @@ def isolated_registry():
     reset_registry()
     yield
     reset_registry()
+
+
+def _assert_no_forbidden_public_fragments(body: object) -> None:
+    text = json.dumps(body, sort_keys=True).lower()
+    assert all(fragment not in text for fragment in FORBIDDEN_PUBLIC_FRAGMENTS)
 
 
 def _write_inputs(input_root: Path) -> tuple[str, str]:
@@ -56,19 +55,13 @@ def _write_inputs(input_root: Path) -> tuple[str, str]:
             [
                 "gene_id,sample_1,sample_2,sample_3,sample_4",
                 "GeneA,100,120,250,260",
-                "GeneB,5,3,4,6",
+                "GeneB,20,22,10,12",
                 "",
             ]
         ),
         encoding="utf-8",
     )
     return "demo/metadata.csv", "demo/counts.csv"
-
-
-def _create_task(client: TestClient) -> str:
-    response = client.post("/task/create", json={})
-    assert response.status_code == 200
-    return response.json()["task_id"]
 
 
 def _plan_payload(task_id: str) -> dict[str, object]:
@@ -97,88 +90,89 @@ def _qc_payload(task_id: str, metadata_file: str, count_matrix_file: str) -> dic
     }
 
 
-def _run_payload(
-    task_id: str,
-    metadata_file: str,
-    count_matrix_file: str,
-    *,
-    method_field: str,
-    method: str,
-) -> dict[str, object]:
+def _run_payload(task_id: str, metadata_file: str, count_matrix_file: str) -> dict[str, object]:
     return {
         **_plan_payload(task_id),
         "metadata_file": metadata_file,
         "count_matrix_file": count_matrix_file,
-        "execution_mode": "minimal_real",
-        method_field: method,
+        "execution_mode": "formal_de_real",
+        "analysis_method": "deseq2",
     }
 
 
-def _assert_no_forbidden_public_fragments(body: object) -> None:
-    text = json.dumps(body, sort_keys=True).lower()
-    assert all(fragment not in text for fragment in FORBIDDEN_PUBLIC_FRAGMENTS)
+def _ready_preflight() -> dict:
+    return {
+        "ready": True,
+        "r_available": True,
+        "rscript_available": True,
+        "biocmanager_available": True,
+        "deseq2_available": True,
+        "warnings": [],
+        "limitations": [],
+    }
 
 
-@pytest.mark.parametrize(
-    ("method_field", "method"),
-    [("analysis_method", "edger"), ("formal_de_method", "limma")],
-)
-def test_task_run_rejects_formal_method_without_generating_outputs(
-    method_field: str,
-    method: str,
+def _write_mock_results(output_path: str) -> None:
+    Path(output_path).write_text(
+        "\n".join(
+            [
+                "gene_id,baseMean,log2FoldChange,lfcSE,stat,pvalue,padj",
+                "GeneA,182.5,1.1,0.2,5.5,0.001,0.002",
+                "GeneB,16.0,-0.9,0.3,-3.0,0.02,0.04",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_artifacts_endpoint_lists_deseq2_outputs_and_descriptions(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    input_root = tmp_path / f"inputs_{method_field}"
-    output_root = tmp_path / f"outputs_{method_field}"
+    input_root = tmp_path / "inputs"
+    output_root = tmp_path / "outputs"
     metadata_file, count_matrix_file = _write_inputs(input_root)
     monkeypatch.setenv("BIOINFO_INPUT_ROOT", str(input_root))
     monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(output_root))
+    monkeypatch.setattr(
+        deseq2_execution.formal_de_preflight,
+        "run_deseq2_preflight",
+        _ready_preflight,
+    )
+
+    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+        _write_mock_results(args[-1])
+        return CommandResult(args=args, returncode=0)
+
+    monkeypatch.setattr(deseq2_execution, "run_command_safely", fake_run)
+
     client = TestClient(app)
-    task_id = _create_task(client)
+    task_id = client.post("/task/create", json={}).json()["task_id"]
     assert client.post("/task/plan", json=_plan_payload(task_id)).status_code == 200
     assert client.post(
         "/task/qc",
         json=_qc_payload(task_id, metadata_file, count_matrix_file),
     ).status_code == 200
-
-    response = client.post(
+    assert client.post(
         "/task/run",
-        json=_run_payload(
-            task_id,
-            metadata_file,
-            count_matrix_file,
-            method_field=method_field,
-            method=method,
-        ),
-    )
+        json=_run_payload(task_id, metadata_file, count_matrix_file),
+    ).status_code == 200
 
-    assert response.status_code == 501
+    response = client.get(f"/task/{task_id}/artifacts")
+
+    assert response.status_code == 200
     body = response.json()
-    assert body["detail"]["error_code"] == "FORMAL_DE_METHOD_NOT_IMPLEMENTED"
-    assert body["detail"]["requested_method"] == method
-    assert body["detail"]["supported_current_methods"] == [
-        "minimal_cpm_log2fc",
-        "deseq2",
+    assert [artifact["name"] for artifact in body["artifacts"]] == [
+        "deseq2_results.csv",
+        "deseq2_summary.json",
+        "deseq2_run_manifest.json",
+        "report.md",
     ]
-    assert body["detail"]["supported_future_formal_methods"] == [
-        "deseq2",
-        "edger",
-        "limma",
-    ]
+    descriptions = " ".join(artifact["description"] for artifact in body["artifacts"])
+    assert "DESeq2 formal differential expression results" in descriptions
+    assert "pvalue and padj" in descriptions
+    assert "preliminary" in json.dumps(body).lower()
+    assert all(artifact["available"] is True for artifact in body["artifacts"])
+    assert all(not Path(artifact["path"]).is_absolute() for artifact in body["artifacts"])
     _assert_no_forbidden_public_fragments(body)
-
-    output_dir = output_root / "tasks" / task_id
-    for filename in ANALYSIS_OUTPUT_FILES:
-        assert not (output_dir / filename).exists()
-
-    status_response = client.get(f"/task/{task_id}/status")
-    assert status_response.status_code == 200
-    assert status_response.json()["status"] == "qc_placeholder_ready"
-
-    task = get_task(task_id)
-    assert task is not None
-    event_types = [event.event_type for event in task.lifecycle_events]
-    assert "minimal_rnaseq_executed" not in event_types
-    task_payload = task.model_dump() if hasattr(task, "model_dump") else task.dict()
-    assert "minimal_analysis_completed" not in json.dumps(task_payload)

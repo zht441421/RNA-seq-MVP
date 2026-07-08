@@ -29,9 +29,15 @@ from backend.app.models.task import (
     TaskValidateInputsResponse,
 )
 from backend.app.services.artifact_paths import (
+    list_deseq2_artifact_specs,
     list_dry_run_record_specs,
     list_minimal_rnaseq_artifact_specs,
     list_placeholder_artifact_specs,
+)
+from backend.app.services.deseq2_execution import (
+    DESEQ2_ANALYSIS_METHOD,
+    Deseq2ExecutionError,
+    execute_task_deseq2,
 )
 from backend.app.services.execution_adapter import (
     ExecutionResult,
@@ -134,6 +140,13 @@ def _run_artifacts(execution_result: ExecutionResult) -> list[dict]:
 
 
 def _artifact_specs_for_response(task_id: str) -> list[dict]:
+    deseq2_artifacts = list_deseq2_artifact_specs(task_id)
+    if any(
+        artifact["name"] == "deseq2_results.csv" and artifact["exists"]
+        for artifact in deseq2_artifacts
+    ):
+        return deseq2_artifacts
+
     minimal_artifacts = list_minimal_rnaseq_artifact_specs(task_id)
     if any(
         artifact["name"] == "normalized_counts_cpm.csv" and artifact["exists"]
@@ -151,6 +164,17 @@ def _artifact_specs_for_response(task_id: str) -> list[dict]:
     ]
 
 
+def _normalize_method_name(method: object) -> str:
+    return "" if method is None else str(method).strip().lower()
+
+
+def _is_deseq2_run_request(request: TaskRunRequest) -> bool:
+    return DESEQ2_ANALYSIS_METHOD in {
+        _normalize_method_name(request.analysis_method),
+        _normalize_method_name(request.formal_de_method),
+    }
+
+
 def _is_minimal_real_run_request(request: TaskRunRequest) -> bool:
     return (
         request.execution_mode == "minimal_real"
@@ -159,20 +183,26 @@ def _is_minimal_real_run_request(request: TaskRunRequest) -> bool:
 
 
 def _validate_run_mode_request(request: TaskRunRequest) -> None:
-    if request.execution_mode not in (None, "dry_run", "placeholder", "minimal_real"):
+    if request.execution_mode not in (
+        None,
+        "dry_run",
+        "placeholder",
+        "minimal_real",
+        "formal_de_real",
+    ):
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported execution_mode: {request.execution_mode}",
         )
 
-    if request.execution_mode == "minimal_real" and (
+    if request.execution_mode in ("minimal_real", "formal_de_real") and (
         not request.metadata_file or not request.count_matrix_file
     ):
         raise HTTPException(
             status_code=400,
             detail=(
                 "metadata_file and count_matrix_file are both required "
-                "for minimal_real execution."
+                f"for {request.execution_mode} execution."
             ),
         )
 
@@ -182,6 +212,15 @@ def _validate_run_mode_request(request: TaskRunRequest) -> None:
         raise HTTPException(
             status_code=400,
             detail="metadata_file and count_matrix_file must be supplied together.",
+        )
+
+    if request.execution_mode == "formal_de_real" and not _is_deseq2_run_request(request):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "formal_de_real execution currently requires analysis_method "
+                "or formal_de_method to be 'deseq2'."
+            ),
         )
 
     try:
@@ -195,6 +234,13 @@ def _minimal_artifacts_exist(task_id: str) -> bool:
     return any(
         artifact["name"] == "normalized_counts_cpm.csv" and artifact["exists"]
         for artifact in list_minimal_rnaseq_artifact_specs(task_id)
+    )
+
+
+def _deseq2_artifacts_exist(task_id: str) -> bool:
+    return any(
+        artifact["name"] == "deseq2_results.csv" and artifact["exists"]
+        for artifact in list_deseq2_artifact_specs(task_id)
     )
 
 
@@ -392,9 +438,65 @@ def create_qc_plan(request: QCRequest) -> QCResponse:
 @router.post("/run", response_model=TaskRunResponse)
 def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
     _validate_run_mode_request(request)
-    is_minimal_real_run = _is_minimal_real_run_request(request)
+    is_deseq2_run = _is_deseq2_run_request(request)
+    is_minimal_real_run = _is_minimal_real_run_request(request) and not is_deseq2_run
 
     task = _get_registry_task_or_404(request.task_id)
+
+    if is_deseq2_run:
+        _ensure_can_mark_run_ready(task)
+        try:
+            execution_result = execute_task_deseq2(
+                task_id=request.task_id,
+                metadata_file=request.metadata_file or "",
+                count_matrix_file=request.count_matrix_file or "",
+                project_name=request.project_name,
+                omics_type=request.omics_type,
+            )
+        except MinimalRNASeqValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.to_detail()) from exc
+        except Deseq2ExecutionError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
+
+        _update_registry_status_or_404(
+            task_id=request.task_id,
+            status=TaskStatus.RUN_PLACEHOLDER_READY,
+            event_type="deseq2_executed",
+            message="DESeq2 formal differential expression execution completed and task status updated.",
+        )
+        return TaskRunResponse(
+            task_id=request.task_id,
+            project_name=request.project_name,
+            status="deseq2_analysis_completed",
+            run_steps=[
+                TaskRunStep(
+                    step_id="run_1",
+                    name="Validate and load inputs",
+                    status="completed",
+                    message="Input paths and RNA-seq content were validated.",
+                ),
+                TaskRunStep(
+                    step_id="run_2",
+                    name="Check DESeq2 preflight",
+                    status="completed",
+                    message="Rscript and DESeq2 preflight readiness was confirmed.",
+                ),
+                TaskRunStep(
+                    step_id="run_3",
+                    name="Run DESeq2",
+                    status="completed",
+                    message="DESeq2 was run with design formula ~ condition.",
+                ),
+                TaskRunStep(
+                    step_id="run_4",
+                    name="Collect formal outputs",
+                    status="completed",
+                    message="DESeq2 results, summary, manifest, and report artifacts were written.",
+                ),
+            ],
+            artifacts=_run_artifacts(execution_result),
+            limitations=execution_result.limitations,
+        )
 
     if is_minimal_real_run:
         _ensure_can_mark_run_ready(task)
@@ -573,7 +675,11 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
                 "No real files were generated."
             ),
         )
-    elif task.status == TaskStatus.RUN_PLACEHOLDER_READY and not _minimal_artifacts_exist(task_id):
+    elif (
+        task.status == TaskStatus.RUN_PLACEHOLDER_READY
+        and not _minimal_artifacts_exist(task_id)
+        and not _deseq2_artifacts_exist(task_id)
+    ):
         _update_registry_status_or_404(
             task_id=task_id,
             status=TaskStatus.ARTIFACTS_PLACEHOLDER_READY,

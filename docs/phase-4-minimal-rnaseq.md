@@ -22,16 +22,19 @@ validation improvement only; it does not add new RNA-seq algorithms.
 
 Phase 4.5 adds an explicit analysis method contract for the current minimal
 workflow and the future formal differential expression methods. It records
-method metadata in the generated outputs and rejects requested formal methods
-deterministically until they are implemented.
+method metadata in the generated outputs and keeps the minimal method clearly
+separate from formal methods.
 
 Phase 4.6 adds a separate DESeq2 environment preflight endpoint for future
 formal method support. It does not change the minimal execution method and does
 not run DESeq2 analysis.
 
-This phase is intentionally modest. It does not implement a formal
-differential expression statistical method and does not report p-values or
-adjusted p-values.
+Phase 4.7 adds a separate gated DESeq2 execution path. It does not change the
+default minimal execution method.
+
+The minimal workflow remains intentionally modest. It does not implement a
+formal differential expression statistical method and does not report p-values
+or adjusted p-values.
 
 ## Execution Trigger
 
@@ -64,6 +67,11 @@ the run as `minimal_analysis_completed`.
 `analysis_method` is optional for minimal real execution. When omitted and both
 input files are supplied, the current method defaults to
 `minimal_cpm_log2fc`.
+
+If `analysis_method` or `formal_de_method` is explicitly set to `deseq2`, the
+request is routed to the Phase 4.7 formal DESeq2 path instead of the minimal
+workflow. DESeq2 requires preflight readiness and writes separate DESeq2
+artifacts.
 
 ## Input Root
 
@@ -190,12 +198,15 @@ Public API responses expose only safe relative paths such as
 
 ## What Is Not Yet Implemented
 
-- No DESeq2, edgeR, or limma execution.
-- No Rscript or external command-line tool calls.
+- The default minimal workflow does not run DESeq2, edgeR, or limma.
+- The default minimal workflow does not call Rscript or external command-line tools.
+- edgeR and limma execution are not implemented.
 - No Snakemake, Nextflow, Docker, or Coze calls.
 - No database persistence.
-- No formal differential expression statistical test.
-- No p-values, adjusted p-values, q-values, or false discovery rate estimates.
+- No formal differential expression statistical test is run by the default
+  minimal method.
+- No p-values, adjusted p-values, q-values, or false discovery rate estimates
+  are produced by the default minimal method.
 - No PCA coordinates.
 - No GSEA, GO, KEGG, pathway, or enrichment analysis.
 
@@ -318,7 +329,7 @@ This method performs CPM normalization and preliminary group-level log2
 fold-change ranking only. It does not fit a formal statistical model, so
 p-values and adjusted p-values are still unavailable.
 
-The future planned formal differential expression methods are:
+The formal differential expression method names tracked by the contract are:
 
 - DESeq2
 - edgeR
@@ -354,27 +365,34 @@ adds only method metadata fields:
 - `pvalue_available`
 - `adjusted_pvalue_available`
 
-If a request sets `analysis_method` or `formal_de_method` to `deseq2`, `edger`,
-or `limma`, the API returns a deterministic not-implemented error:
+In Phase 4.7, `deseq2` is routed to the gated DESeq2 execution path when
+preflight is ready. If preflight is not ready, the API returns:
+
+```text
+DESEQ2_PREFLIGHT_NOT_READY
+```
+
+If a request sets `analysis_method` or `formal_de_method` to `edger` or
+`limma`, the API returns a deterministic not-implemented error:
 
 ```json
 {
   "detail": {
     "error_code": "FORMAL_DE_METHOD_NOT_IMPLEMENTED",
     "message": "Formal differential expression method is planned but not implemented in this phase.",
-    "requested_method": "deseq2",
-    "supported_current_methods": ["minimal_cpm_log2fc"],
+    "requested_method": "edger",
+    "supported_current_methods": ["minimal_cpm_log2fc", "deseq2"],
     "supported_future_formal_methods": ["deseq2", "edger", "limma"],
     "errors": [
-      "Requested formal differential expression method 'deseq2' is not implemented yet.",
+      "Requested formal differential expression method 'edger' is not implemented yet.",
       "No DESeq2, edgeR, limma, Rscript, or external tool execution was started."
     ]
   }
 }
 ```
 
-No output analysis files are generated for that request, and the task is not
-marked as `minimal_analysis_completed`.
+No output analysis files are generated for an unsupported formal method
+request, and the task is not marked as `minimal_analysis_completed`.
 
 ## Phase 4.6 DESeq2 Preflight
 
@@ -401,6 +419,38 @@ DESeq2 execution is not available until R, Rscript, BiocManager, and DESeq2 are 
 The minimal `POST /task/run` workflow still uses `minimal_cpm_log2fc` only and
 still does not call Rscript, DESeq2, edgeR, limma, enrichment tools, containers,
 workflow engines, or Coze.
+
+## Phase 4.7 Minimal DESeq2 Execution
+
+Phase 4.7 adds a separate formal DESeq2 path for explicit requests:
+
+```json
+{
+  "execution_mode": "formal_de_real",
+  "analysis_method": "deseq2",
+  "formal_de_method": "deseq2"
+}
+```
+
+The request still requires validated `metadata_file` and `count_matrix_file`.
+The DESeq2 path is gated by the Phase 4.6 preflight. If the preflight is ready,
+the service runs a task-local R script through `Rscript --vanilla` with design
+formula `~ condition` and writes:
+
+- `deseq2_results.csv`
+- `deseq2_summary.json`
+- `deseq2_run_manifest.json`
+- `report.md`
+
+`deseq2_results.csv` may include formal DESeq2 result columns such as
+`baseMean`, `log2FoldChange`, `lfcSE`, `stat`, `pvalue`, and `padj`. These
+columns belong to the DESeq2 output only. The minimal
+`differential_expression_results.csv` artifact remains a preliminary
+CPM/log2FC ranking.
+
+The DESeq2 path does not install R packages, call `BiocManager::install`, run
+edgeR or limma, perform GO/KEGG/GSEA enrichment, use Docker, run workflow
+engines, call Coze, or add database persistence.
 
 ## Limitations
 

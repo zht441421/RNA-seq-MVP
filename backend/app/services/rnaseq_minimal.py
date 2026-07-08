@@ -42,10 +42,12 @@ _TOP_RANKED_GENE_COLUMNS = [
 _CPM_DECIMAL_PLACES = 4
 _LOG2FC_DECIMAL_PLACES = 4
 MINIMAL_ANALYSIS_METHOD = "minimal_cpm_log2fc"
+DESEQ2_ANALYSIS_METHOD = "deseq2"
 MINIMAL_ANALYSIS_METHOD_DISPLAY_NAME = "Minimal CPM + preliminary log2 fold-change ranking"
 FORMAL_DE_METHOD_NOT_IMPLEMENTED = "FORMAL_DE_METHOD_NOT_IMPLEMENTED"
 UNSUPPORTED_ANALYSIS_METHOD = "ANALYSIS_METHOD_NOT_SUPPORTED"
 _SUPPORTED_FUTURE_FORMAL_METHODS = ("deseq2", "edger", "limma")
+_NOT_IMPLEMENTED_FORMAL_METHODS = ("edger", "limma")
 _FORMAL_METHOD_DISPLAY_NAMES = {
     "deseq2": "DESeq2",
     "edger": "edgeR",
@@ -82,7 +84,7 @@ class RNASeqMethodContractError(ValueError):
             "error_code": self.error_code,
             "message": self.message,
             "requested_method": self.requested_method,
-            "supported_current_methods": [MINIMAL_ANALYSIS_METHOD],
+            "supported_current_methods": [MINIMAL_ANALYSIS_METHOD, DESEQ2_ANALYSIS_METHOD],
             "supported_future_formal_methods": get_supported_formal_methods(),
             "errors": list(self.errors),
         }
@@ -111,7 +113,9 @@ def validate_requested_analysis_method(method: str | None) -> str:
     normalized_method = _normalize_method_name(method) or MINIMAL_ANALYSIS_METHOD
     if normalized_method == MINIMAL_ANALYSIS_METHOD:
         return MINIMAL_ANALYSIS_METHOD
-    if normalized_method in _SUPPORTED_FUTURE_FORMAL_METHODS:
+    if normalized_method == DESEQ2_ANALYSIS_METHOD:
+        return DESEQ2_ANALYSIS_METHOD
+    if normalized_method in _NOT_IMPLEMENTED_FORMAL_METHODS:
         raise _formal_method_not_implemented(normalized_method)
     raise _unsupported_analysis_method()
 
@@ -120,7 +124,9 @@ def validate_requested_formal_de_method(method: str | None) -> None:
     normalized_method = _normalize_method_name(method)
     if not normalized_method:
         return
-    if normalized_method in _SUPPORTED_FUTURE_FORMAL_METHODS:
+    if normalized_method == DESEQ2_ANALYSIS_METHOD:
+        return
+    if normalized_method in _NOT_IMPLEMENTED_FORMAL_METHODS:
         raise _formal_method_not_implemented(normalized_method)
     raise RNASeqMethodContractError(
         error_code=UNSUPPORTED_ANALYSIS_METHOD,

@@ -3,6 +3,7 @@ import json
 import pytest
 
 from backend.app.services.rnaseq_minimal import (
+    DESEQ2_ANALYSIS_METHOD,
     FORMAL_DE_METHOD_NOT_IMPLEMENTED,
     MINIMAL_ANALYSIS_METHOD,
     RNASeqMethodContractError,
@@ -64,7 +65,7 @@ def test_minimal_method_contract_records_no_formal_statistics() -> None:
     assert contract["adjusted_pvalue_available"] is False
 
 
-@pytest.mark.parametrize("method", ["deseq2", "edger", "limma"])
+@pytest.mark.parametrize("method", ["edger", "limma"])
 @pytest.mark.parametrize(
     "validator",
     [validate_requested_analysis_method, validate_requested_formal_de_method],
@@ -83,6 +84,11 @@ def test_planned_formal_methods_are_rejected_as_not_implemented(
     assert detail["requested_method"] == method
     assert method in detail["supported_future_formal_methods"]
     _assert_no_forbidden_public_fragments(detail)
+
+
+def test_deseq2_is_accepted_as_gated_formal_method() -> None:
+    assert validate_requested_analysis_method("deseq2") == DESEQ2_ANALYSIS_METHOD
+    assert validate_requested_formal_de_method("deseq2") is None
 
 
 def test_minimal_analysis_method_is_current_supported_method() -> None:

@@ -1,8 +1,8 @@
 # Phase 4.6 DESeq2 Preflight
 
-Phase 4.6 adds a safe local environment preflight for future DESeq2 support.
-It checks whether the runtime appears ready to execute DESeq2 in a later phase,
-but it does not run differential expression analysis.
+Phase 4.6 adds a safe local environment preflight for DESeq2 support. It checks
+whether the runtime appears ready to execute DESeq2. In Phase 4.7, this
+preflight gates the minimal real DESeq2 execution chain.
 
 ## Purpose
 
@@ -118,8 +118,10 @@ The service returns deterministic public fields suitable for tests and endpoint
 serialization. Command execution uses list arguments, no shell execution, short
 timeouts, and sanitized output.
 
-## Next Step
+## Phase 4.7 Gate
 
-Phase 4.7 may add a minimal DESeq2 execution chain after the environment
-preflight contract is stable. Until then, `deseq2` remains a planned formal
-method and is not available through `POST /task/run`.
+Phase 4.7 uses this preflight before any DESeq2 Rscript analysis is started.
+When `POST /task/run` explicitly requests `deseq2` and this preflight returns
+`ready: true`, the API may run the minimal DESeq2 execution chain. When the
+preflight is not ready, the API returns `DESEQ2_PREFLIGHT_NOT_READY` and does
+not generate fake DESeq2 outputs.
