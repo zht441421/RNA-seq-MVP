@@ -229,6 +229,7 @@ def test_task_run_deseq2_success_returns_artifacts(
     artifact_names = [artifact["name"] for artifact in body["artifacts"]]
     assert artifact_names == [
         "deseq2_results.csv",
+        "deseq2_interpretation_summary.json",
         "deseq2_summary.json",
         "deseq2_run_manifest.json",
         "report.md",

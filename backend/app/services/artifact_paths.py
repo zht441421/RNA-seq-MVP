@@ -110,6 +110,13 @@ _DESEQ2_ARTIFACTS = [
         ),
     },
     {
+        "name": "deseq2_interpretation_summary.json",
+        "artifact_type": "deseq2_interpretation_summary",
+        "description": (
+            "Structured DESeq2 interpretation summary for safe report/Coze consumption."
+        ),
+    },
+    {
         "name": "deseq2_summary.json",
         "artifact_type": "deseq2_execution_summary",
         "description": (

@@ -162,6 +162,12 @@ def test_deseq2_report_contains_formal_method_boundaries(
     assert "P-values available: true" in report
     assert "Adjusted p-values available: true" in report
     assert "Result artifact: `deseq2_results.csv`" in report
+    assert "DESeq2 interpretation summary" in report
+    assert "padj <= 0.05" in report
+    assert "abs(log2FoldChange) >= 1.0" in report
+    assert "Statistical significance is not the same as biological significance" in report
+    assert "log2FoldChange direction depends on DESeq2 contrast/reference" in report
+    assert "NA pvalue or padj can occur" in report
     assert "No GO/KEGG/GSEA enrichment analysis is performed." in report
     assert "No complex design" in report
     assert "No batch correction" in report

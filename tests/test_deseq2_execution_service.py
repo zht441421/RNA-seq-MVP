@@ -199,6 +199,7 @@ def test_successful_mocked_deseq2_execution_writes_outputs_and_contract(
     output_dir = output_root / "tasks" / "task_0002"
     assert result.status == "deseq2_analysis_completed"
     assert (output_dir / "deseq2_results.csv").is_file()
+    assert (output_dir / "deseq2_interpretation_summary.json").is_file()
     assert (output_dir / "deseq2_summary.json").is_file()
     assert (output_dir / "deseq2_run_manifest.json").is_file()
     assert (output_dir / "report.md").is_file()
@@ -211,6 +212,23 @@ def test_successful_mocked_deseq2_execution_writes_outputs_and_contract(
     assert summary["pvalue_available"] is True
     assert summary["adjusted_pvalue_available"] is True
     assert summary["external_tools_called"] is True
+    assert summary["interpretation_summary_file"] == "deseq2_interpretation_summary.json"
+    assert summary["default_padj_threshold"] == 0.05
+    assert summary["default_abs_log2fc_threshold"] == 1.0
+    assert summary["genes_passing_default_reporting_filter"] == 1
+    assert summary["top_genes_available"] is True
+    assert (
+        summary["interpretation_boundary"]
+        == "Statistical significance does not automatically imply biological significance."
+    )
+
+    interpretation = json.loads(
+        (output_dir / "deseq2_interpretation_summary.json").read_text(encoding="utf-8")
+    )
+    assert interpretation["threshold_summary"][
+        "genes_passing_default_reporting_filter"
+    ] == 1
+    assert interpretation["summary"]["padj_threshold"] == 0.05
 
     manifest = json.loads(
         (output_dir / "deseq2_run_manifest.json").read_text(encoding="utf-8")
@@ -220,10 +238,12 @@ def test_successful_mocked_deseq2_execution_writes_outputs_and_contract(
     assert manifest["package_installation_attempted"] is False
     assert manifest["output_files"] == [
         "tasks/task_0002/deseq2_results.csv",
+        "tasks/task_0002/deseq2_interpretation_summary.json",
         "tasks/task_0002/deseq2_summary.json",
         "tasks/task_0002/deseq2_run_manifest.json",
         "tasks/task_0002/report.md",
     ]
+    _assert_no_forbidden_public_fragments(interpretation)
     _assert_no_forbidden_public_fragments(summary)
     _assert_no_forbidden_public_fragments(manifest)
 

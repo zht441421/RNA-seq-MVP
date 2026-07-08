@@ -4,6 +4,10 @@ Phase 4.7 adds the first gated real DESeq2 execution chain for Bulk RNA-seq.
 It is intentionally minimal: DESeq2 can run only when explicitly requested and
 only after the Phase 4.6 preflight reports that the environment is ready.
 
+Phase 4.8 adds a deterministic interpretation summary for DESeq2 outputs. It
+does not change the DESeq2 statistical execution, design formula, or runtime
+gate.
+
 ## Purpose
 
 This phase connects `POST /task/run` to a safe Rscript + DESeq2 execution path
@@ -91,6 +95,7 @@ DESeq2 execution writes these files under
 `BIOINFO_OUTPUT_ROOT/tasks/<task_id>/`:
 
 - `deseq2_results.csv`
+- `deseq2_interpretation_summary.json`
 - `deseq2_summary.json`
 - `deseq2_run_manifest.json`
 - `report.md`
@@ -104,6 +109,19 @@ DESeq2 execution writes these files under
 - `stat`
 - `pvalue`
 - `padj`
+
+`deseq2_interpretation_summary.json` records a safe interpretation contract:
+
+- thresholds used: `padj <= 0.05` and `abs(log2FoldChange) >= 1.0`
+- total genes tested
+- genes with valid and NA adjusted p-values
+- genes passing adjusted p-value threshold
+- genes passing log2 fold-change threshold
+- genes passing both default reporting thresholds
+- top genes by adjusted p-value
+- top genes by absolute log2 fold change
+- warnings and limitations
+- interpretation boundary
 
 `deseq2_summary.json` records:
 
@@ -120,6 +138,10 @@ DESeq2 execution writes these files under
 - input and result gene/sample counts
 - `pvalue_column: "pvalue"`
 - `adjusted_pvalue_column: "padj"`
+- `interpretation_summary_file: "deseq2_interpretation_summary.json"`
+- default interpretation thresholds
+- genes passing the default reporting filter
+- interpretation boundary
 - limitations and warnings
 
 `deseq2_run_manifest.json` records:
@@ -132,6 +154,24 @@ DESeq2 execution writes these files under
 - `package_installation_attempted: false`
 - output files
 - limitations
+
+## Interpretation Boundaries
+
+The report and interpretation summary explicitly state:
+
+- Adjusted p-values control false discovery rate under the statistical model.
+- Statistical significance is not the same as biological significance.
+- log2FoldChange direction depends on DESeq2 contrast/reference level.
+- Direction is reported as positive or negative log2FoldChange unless a
+  contrast/reference is explicitly recorded.
+- NA pvalue or padj can occur due to filtering, low counts, outlier handling,
+  or model limitations.
+- No batch correction or complex design was performed in this phase.
+- No GO/KEGG/GSEA enrichment was performed.
+
+Genes passing both default thresholds are reporting candidates only. They are
+not automatically biologically meaningful, causal, clinical, or pathway-level
+findings.
 
 ## Unavailable Environment
 
@@ -157,6 +197,7 @@ task is not marked as completed.
 - No limma execution.
 - No GO/KEGG/GSEA enrichment.
 - No pathway analysis.
+- No visualization generation.
 - No Snakemake or Nextflow workflow.
 - No Docker runner for this path.
 - No Coze calls.

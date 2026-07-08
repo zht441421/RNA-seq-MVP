@@ -13,6 +13,10 @@ Phase 4.7 adds minimal real DESeq2 execution when `deseq2` is explicitly
 requested and the preflight is ready. edgeR and limma remain planned but not
 implemented.
 
+Phase 4.8 adds deterministic DESeq2 interpretation summary fields for reports
+and future Coze-facing responses. It does not change the DESeq2 statistical
+execution.
+
 ## Current Methods
 
 The default current execution method is:
@@ -77,6 +81,9 @@ execution path passed preflight and produced formal DESeq2 outputs for that
 task. It does not imply enrichment analysis, complex design support, or any
 result interpretation beyond the generated DESeq2 table.
 
+In Phase 4.8, interpretation summaries add threshold counts and top-gene lists,
+but they still do not make biological, causal, clinical, or pathway claims.
+
 ## Output Method Metadata
 
 `execution_summary.json` records:
@@ -112,8 +119,35 @@ availability flags are `false`.
 - `result_gene_count`
 - `pvalue_column`
 - `adjusted_pvalue_column`
+- `interpretation_summary_file`
+- `default_padj_threshold`
+- `default_abs_log2fc_threshold`
+- `genes_passing_default_reporting_filter`
+- `top_genes_available`
+- `interpretation_boundary`
 - `limitations`
 - `warnings`
+
+`deseq2_interpretation_summary.json` records:
+
+- `analysis_method`
+- `formal_de_method`
+- `padj_threshold`
+- `abs_log2fc_threshold`
+- `total_genes_tested`
+- `genes_with_valid_padj`
+- `genes_with_na_padj`
+- `genes_passing_padj_threshold`
+- `genes_passing_log2fc_threshold`
+- `genes_passing_both_thresholds`
+- `genes_passing_default_reporting_filter`
+- `upregulated_count`
+- `downregulated_count`
+- `top_genes_by_padj`
+- `top_genes_by_abs_log2fc`
+- `interpretation_warnings`
+- `interpretation_limitations`
+- `interpretation_boundary`
 
 `run_manifest.json` records:
 
@@ -179,10 +213,13 @@ do not echo untrusted method text back to the client.
 - edgeR and limma runtimes are not invoked.
 - No Docker, Snakemake, Nextflow, Coze call, or workflow engine is invoked.
 - No GSEA, GO, KEGG, pathway, or enrichment analysis is performed.
+- No visualization generation is performed.
 - The preliminary ranking is exploratory only and must not be treated as a
   final DEG list.
 - DESeq2 Phase 4.7 uses only the minimal design formula `~ condition`; no batch
   correction or complex design is implemented yet.
+- Phase 4.8 top-gene summaries are reporting aids only. Statistical
+  significance does not automatically imply biological significance.
 
 ## Expected Future Fields
 

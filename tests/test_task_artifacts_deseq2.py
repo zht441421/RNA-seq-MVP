@@ -165,12 +165,17 @@ def test_artifacts_endpoint_lists_deseq2_outputs_and_descriptions(
     body = response.json()
     assert [artifact["name"] for artifact in body["artifacts"]] == [
         "deseq2_results.csv",
+        "deseq2_interpretation_summary.json",
         "deseq2_summary.json",
         "deseq2_run_manifest.json",
         "report.md",
     ]
     descriptions = " ".join(artifact["description"] for artifact in body["artifacts"])
     assert "DESeq2 formal differential expression results" in descriptions
+    assert (
+        "Structured DESeq2 interpretation summary for safe report/Coze consumption."
+        in descriptions
+    )
     assert "pvalue and padj" in descriptions
     assert "preliminary" in json.dumps(body).lower()
     assert all(artifact["available"] is True for artifact in body["artifacts"])

@@ -32,6 +32,9 @@ not run DESeq2 analysis.
 Phase 4.7 adds a separate gated DESeq2 execution path. It does not change the
 default minimal execution method.
 
+Phase 4.8 adds deterministic DESeq2 interpretation summaries for the separate
+DESeq2 path. It does not change the default minimal execution method.
+
 The minimal workflow remains intentionally modest. It does not implement a
 formal differential expression statistical method and does not report p-values
 or adjusted p-values.
@@ -438,6 +441,7 @@ the service runs a task-local R script through `Rscript --vanilla` with design
 formula `~ condition` and writes:
 
 - `deseq2_results.csv`
+- `deseq2_interpretation_summary.json`
 - `deseq2_summary.json`
 - `deseq2_run_manifest.json`
 - `report.md`
@@ -447,6 +451,24 @@ formula `~ condition` and writes:
 columns belong to the DESeq2 output only. The minimal
 `differential_expression_results.csv` artifact remains a preliminary
 CPM/log2FC ranking.
+
+## Phase 4.8 DESeq2 Interpretation Summary
+
+Phase 4.8 writes `deseq2_interpretation_summary.json` for successful DESeq2
+runs. The summary records default reporting thresholds, counts of genes passing
+adjusted p-value and log2 fold-change thresholds, top genes by adjusted
+p-value, top genes by absolute log2 fold change, warnings, limitations, and a
+clear interpretation boundary.
+
+The default thresholds are:
+
+- `padj <= 0.05`
+- `abs(log2FoldChange) >= 1.0`
+
+The interpretation summary does not invent biological conclusions. It does not
+claim pathway enrichment, causal biology, clinical significance, or gene
+annotations. It also does not change the minimal `minimal_cpm_log2fc` output,
+which remains a preliminary ranking without formal p-values.
 
 The DESeq2 path does not install R packages, call `BiocManager::install`, run
 edgeR or limma, perform GO/KEGG/GSEA enrichment, use Docker, run workflow

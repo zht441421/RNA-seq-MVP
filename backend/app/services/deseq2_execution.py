@@ -13,6 +13,13 @@ from backend.app.services.artifact_paths import (
 )
 from backend.app.services.formal_de_preflight import CommandResult, run_command_safely
 from backend.app.services.input_validation import validate_rnaseq_input_files
+from backend.app.services.deseq2_interpretation import (
+    DEFAULT_ABS_LOG2FC_THRESHOLD,
+    DEFAULT_PADJ_THRESHOLD,
+    INTERPRETATION_BOUNDARY,
+    build_deseq2_interpretation_contract,
+    summarize_deseq2_results,
+)
 from backend.app.services.rnaseq_minimal import (
     CountMatrix,
     MinimalRNASeqValidationError,
@@ -32,6 +39,7 @@ _PLACEHOLDER_TIMESTAMP = "2026-01-01T00:00:00Z"
 _DESEQ2_TIMEOUT_SECONDS = 120
 _DESEQ2_OUTPUT_FILES = [
     "deseq2_results.csv",
+    "deseq2_interpretation_summary.json",
     "deseq2_summary.json",
     "deseq2_run_manifest.json",
     "report.md",
@@ -125,6 +133,10 @@ def execute_task_deseq2(
     output_dir_relative = output_dir.relative_to(get_output_root()).as_posix()
     script_path = output_dir / "run_deseq2.R"
     results_path = resolve_task_artifact_path(task_id, "deseq2_results.csv")
+    interpretation_path = resolve_task_artifact_path(
+        task_id,
+        "deseq2_interpretation_summary.json",
+    )
     summary_path = resolve_task_artifact_path(task_id, "deseq2_summary.json")
     manifest_path = resolve_task_artifact_path(task_id, "deseq2_run_manifest.json")
     report_path = resolve_task_artifact_path(task_id, "report.md")
@@ -150,7 +162,11 @@ def execute_task_deseq2(
             errors=["DESeq2 execution did not produce deseq2_results.csv."],
         )
 
-    result_gene_count = _count_csv_rows(results_path)
+    interpretation_summary = summarize_deseq2_results(results_path)
+    interpretation_contract = build_deseq2_interpretation_contract(
+        interpretation_summary
+    )
+    result_gene_count = int(interpretation_summary["total_genes_tested"])
     limitations = _deseq2_limitations()
     generated_files = _generated_file_entries(task_id)
     output_files = [
@@ -162,6 +178,7 @@ def execute_task_deseq2(
         task_id=task_id,
         counts=counts,
         result_gene_count=result_gene_count,
+        interpretation_summary=interpretation_summary,
         warnings=warnings,
         limitations=limitations,
     )
@@ -176,6 +193,7 @@ def execute_task_deseq2(
         limitations=limitations,
     )
 
+    write_json(interpretation_path, interpretation_contract)
     write_json(summary_path, summary)
     write_json(manifest_path, manifest)
     _write_deseq2_report(
@@ -184,6 +202,7 @@ def execute_task_deseq2(
         sample_count=len(counts.sample_ids),
         gene_count=len(counts.gene_ids),
         result_gene_count=result_gene_count,
+        interpretation_summary=interpretation_summary,
         output_files=output_files,
         warnings=warnings,
         limitations=limitations,
@@ -266,9 +285,13 @@ def _deseq2_summary(
     task_id: str,
     counts: CountMatrix,
     result_gene_count: int,
+    interpretation_summary: dict,
     warnings: list[str],
     limitations: list[str],
 ) -> dict:
+    genes_passing_filter = int(
+        interpretation_summary.get("genes_passing_default_reporting_filter", 0)
+    )
     return {
         "task_id": task_id,
         "analysis_method": DESEQ2_ANALYSIS_METHOD,
@@ -286,6 +309,15 @@ def _deseq2_summary(
         "result_gene_count": result_gene_count,
         "pvalue_column": "pvalue",
         "adjusted_pvalue_column": "padj",
+        "interpretation_summary_file": "deseq2_interpretation_summary.json",
+        "default_padj_threshold": DEFAULT_PADJ_THRESHOLD,
+        "default_abs_log2fc_threshold": DEFAULT_ABS_LOG2FC_THRESHOLD,
+        "genes_passing_default_reporting_filter": genes_passing_filter,
+        "top_genes_available": bool(
+            interpretation_summary.get("top_genes_by_padj")
+            or interpretation_summary.get("top_genes_by_abs_log2fc")
+        ),
+        "interpretation_boundary": INTERPRETATION_BOUNDARY,
         "limitations": limitations,
         "warnings": warnings,
     }
@@ -327,10 +359,13 @@ def _write_deseq2_report(
     sample_count: int,
     gene_count: int,
     result_gene_count: int,
+    interpretation_summary: dict,
     output_files: list[str],
     warnings: list[str],
     limitations: list[str],
 ) -> None:
+    top_by_padj = interpretation_summary.get("top_genes_by_padj", [])
+    top_by_abs_log2fc = interpretation_summary.get("top_genes_by_abs_log2fc", [])
     lines = [
         "# DESeq2 Formal Differential Expression Report",
         "",
@@ -350,6 +385,49 @@ def _write_deseq2_report(
         f"- Sample count: {sample_count}",
         f"- Input gene count: {gene_count}",
         f"- Result gene count: {result_gene_count}",
+        "",
+        "## DESeq2 interpretation summary",
+        "",
+        (
+            "- Genes passing default reporting filter: "
+            f"{interpretation_summary.get('genes_passing_default_reporting_filter', 0)}"
+        ),
+        (
+            "- Genes with valid adjusted p-values: "
+            f"{interpretation_summary.get('genes_with_valid_padj', 0)}"
+        ),
+        (
+            "- Genes with NA adjusted p-values: "
+            f"{interpretation_summary.get('genes_with_na_padj', 0)}"
+        ),
+        f"- Positive log2FoldChange count: {interpretation_summary.get('upregulated_count', 0)}",
+        f"- Negative log2FoldChange count: {interpretation_summary.get('downregulated_count', 0)}",
+        "",
+        "## Thresholds used",
+        "",
+        f"- padj <= {interpretation_summary.get('padj_threshold', DEFAULT_PADJ_THRESHOLD)}",
+        (
+            "- abs(log2FoldChange) >= "
+            f"{interpretation_summary.get('abs_log2fc_threshold', DEFAULT_ABS_LOG2FC_THRESHOLD)}"
+        ),
+        "",
+        "## Top genes by adjusted p-value",
+        "",
+        *_format_gene_bullets(top_by_padj),
+        "",
+        "## Top genes by absolute log2 fold change",
+        "",
+        *_format_gene_bullets(top_by_abs_log2fc),
+        "",
+        "## Important interpretation boundaries",
+        "",
+        "- Adjusted p-values control false discovery rate under the statistical model.",
+        "- Statistical significance is not the same as biological significance.",
+        "- log2FoldChange direction depends on DESeq2 contrast/reference level.",
+        "- NA pvalue or padj can occur due to filtering, low counts, outlier handling, or model limitations.",
+        "- No batch correction or complex design was performed in this phase.",
+        "- No GO/KEGG/GSEA enrichment analysis was performed.",
+        "- Do not claim causal biology, pathway enrichment, clinical significance, or gene annotations from this result alone.",
         "",
         "## Generated artifacts",
         "",
@@ -405,6 +483,29 @@ def _deseq2_r_script() -> str:
             "write.csv(output, output_path, row.names = FALSE, na = '')",
         ]
     ) + "\n"
+
+
+def _format_gene_bullets(genes: list[dict]) -> list[str]:
+    if not genes:
+        return ["- none"]
+    return [
+        (
+            f"- `{gene['gene_id']}`: padj={_format_optional_number(gene.get('padj'))}, "
+            f"log2FoldChange={_format_optional_number(gene.get('log2FoldChange'))}, "
+            f"direction={gene.get('direction_label', 'unknown log2FoldChange')}"
+        )
+        for gene in genes[:5]
+    ]
+
+
+def _format_optional_number(value: object) -> str:
+    if value is None:
+        return "NA"
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return "NA"
+    return f"{number:.6g}"
 
 
 def _generated_file_entries(task_id: str) -> list[dict]:
