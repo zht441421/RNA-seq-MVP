@@ -7,6 +7,8 @@ from backend.app.models.task import (
     AnalysisPlanResponse,
     AnalysisStep,
     AuditEvent,
+    FormalDEPreflightChecks,
+    FormalDEPreflightResponse,
     QCCheck,
     QCRequest,
     QCResponse,
@@ -42,6 +44,7 @@ from backend.app.services.rnaseq_minimal import (
     validate_requested_analysis_method,
     validate_requested_formal_de_method,
 )
+from backend.app.services import formal_de_preflight
 from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
@@ -241,6 +244,28 @@ def validate_task_inputs(request: TaskValidateInputsRequest) -> TaskValidateInpu
         count_matrix=_input_file_response(validation.count_matrix),
         errors=validation.errors,
         limitations=validation.limitations,
+    )
+
+
+@router.get("/formal-de/preflight", response_model=FormalDEPreflightResponse)
+def get_formal_de_preflight() -> FormalDEPreflightResponse:
+    preflight = formal_de_preflight.run_deseq2_preflight()
+    return FormalDEPreflightResponse(
+        formal_method=preflight["formal_method"],
+        ready=preflight["ready"],
+        checks=FormalDEPreflightChecks(
+            r_available=preflight["r_available"],
+            rscript_available=preflight["rscript_available"],
+            r_version=preflight["r_version"],
+            rscript_version=preflight["rscript_version"],
+            biocmanager_available=preflight["biocmanager_available"],
+            deseq2_available=preflight["deseq2_available"],
+            checked_at=preflight["checked_at"],
+            commands_checked=preflight["commands_checked"],
+        ),
+        warnings=preflight["warnings"],
+        errors=preflight["errors"],
+        limitations=preflight["limitations"],
     )
 
 

@@ -94,6 +94,27 @@
         }
       }
     },
+    "/task/formal-de/preflight": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Get Formal De Preflight",
+        "operationId": "get_formal_de_preflight_task_formal_de_preflight_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormalDEPreflightResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/plan": {
       "post": {
         "tags": [
@@ -592,6 +613,116 @@
           "actor"
         ],
         "title": "AuditEvent"
+      },
+      "FormalDEPreflightChecks": {
+        "properties": {
+          "r_available": {
+            "type": "boolean",
+            "title": "R Available"
+          },
+          "rscript_available": {
+            "type": "boolean",
+            "title": "Rscript Available"
+          },
+          "r_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R Version"
+          },
+          "rscript_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rscript Version"
+          },
+          "biocmanager_available": {
+            "type": "boolean",
+            "title": "Biocmanager Available"
+          },
+          "deseq2_available": {
+            "type": "boolean",
+            "title": "Deseq2 Available"
+          },
+          "checked_at": {
+            "type": "string",
+            "title": "Checked At"
+          },
+          "commands_checked": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Commands Checked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "r_available",
+          "rscript_available",
+          "biocmanager_available",
+          "deseq2_available",
+          "checked_at"
+        ],
+        "title": "FormalDEPreflightChecks"
+      },
+      "FormalDEPreflightResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "formal_de_preflight_completed"
+          },
+          "formal_method": {
+            "type": "string",
+            "title": "Formal Method",
+            "default": "deseq2"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/FormalDEPreflightChecks"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ready",
+          "checks"
+        ],
+        "title": "FormalDEPreflightResponse"
       },
       "HTTPValidationError": {
         "properties": {

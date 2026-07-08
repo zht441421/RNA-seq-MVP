@@ -5,6 +5,11 @@ Bulk RNA-seq MVP workflow from future formal differential expression methods.
 It does not implement DESeq2, edgeR, limma, Rscript, containers, workflow
 engines, enrichment analysis, or external tool calls.
 
+Phase 4.6 adds a read-only DESeq2 environment preflight endpoint. The preflight
+checks whether R, Rscript, BiocManager, and DESeq2 are available for future
+DESeq2 execution. It does not implement DESeq2 as an analysis method and does
+not run differential expression analysis.
+
 ## Current Method
 
 The only current execution method is:
@@ -32,7 +37,29 @@ The planned formal differential expression methods are:
 - `edger`
 - `limma`
 
-These names are reserved for future phases. They are not executed in Phase 4.5.
+These names are reserved for future phases. They are not executed in Phase 4.5
+or Phase 4.6.
+
+## Phase 4.6 DESeq2 Preflight
+
+`GET /task/formal-de/preflight` returns safe environment readiness metadata for
+the planned `deseq2` method. It does not require a task ID, does not mutate the
+task registry, and does not create artifacts.
+
+The preflight reports whether these components are available:
+
+- `R`
+- `Rscript`
+- `BiocManager`
+- `DESeq2`
+
+It may report R and Rscript versions when available. Missing components return
+HTTP 200 with `ready: false` and deterministic limitations.
+
+`formal_de_ready` in the current method contract remains about method contract
+readiness in generated minimal workflow outputs. It does not mean that formal
+DESeq2 result fields are available. Phase 4.6 readiness metadata only indicates
+whether the local environment appears prepared for future DESeq2 execution.
 
 ## Output Method Metadata
 
@@ -94,8 +121,9 @@ do not echo untrusted method text back to the client.
 - No p-values, adjusted p-values, q-values, or false discovery rate estimates
   are produced.
 - No DESeq2, edgeR, or limma runtime is invoked.
-- No Rscript, Docker, Snakemake, Nextflow, Coze call, or external command is
-  invoked.
+- The Phase 4.6 preflight may invoke `R --version`, `Rscript --version`, and
+  safe package availability checks, but no formal method runtime is invoked.
+- No Docker, Snakemake, Nextflow, Coze call, or workflow engine is invoked.
 - No GSEA, GO, KEGG, pathway, or enrichment analysis is performed.
 - The preliminary ranking is exploratory only and must not be treated as a
   final DEG list.

@@ -25,6 +25,10 @@ workflow and the future formal differential expression methods. It records
 method metadata in the generated outputs and rejects requested formal methods
 deterministically until they are implemented.
 
+Phase 4.6 adds a separate DESeq2 environment preflight endpoint for future
+formal method support. It does not change the minimal execution method and does
+not run DESeq2 analysis.
+
 This phase is intentionally modest. It does not implement a formal
 differential expression statistical method and does not report p-values or
 adjusted p-values.
@@ -371,6 +375,32 @@ or `limma`, the API returns a deterministic not-implemented error:
 
 No output analysis files are generated for that request, and the task is not
 marked as `minimal_analysis_completed`.
+
+## Phase 4.6 DESeq2 Preflight
+
+`GET /task/formal-de/preflight` checks whether the local environment appears
+ready for future DESeq2 execution. It can check R and Rscript availability,
+read their versions, and test whether `BiocManager` and `DESeq2` are installed.
+
+This endpoint is read-only:
+
+- It does not require a `task_id`.
+- It does not mutate the task registry.
+- It does not create task artifacts.
+- It does not install or update R packages.
+- It does not call `BiocManager::install`.
+- It does not run real DESeq2 differential expression analysis.
+
+When R, Rscript, BiocManager, or DESeq2 is unavailable, the endpoint returns
+HTTP 200 with `ready: false` and a clear limitation:
+
+```text
+DESeq2 execution is not available until R, Rscript, BiocManager, and DESeq2 are installed.
+```
+
+The minimal `POST /task/run` workflow still uses `minimal_cpm_log2fc` only and
+still does not call Rscript, DESeq2, edgeR, limma, enrichment tools, containers,
+workflow engines, or Coze.
 
 ## Limitations
 

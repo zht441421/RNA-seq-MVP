@@ -198,3 +198,24 @@ class TaskValidateInputsResponse(BaseModel):
     count_matrix: TaskInputFileValidationResponse
     errors: List[str] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
+
+
+class FormalDEPreflightChecks(BaseModel):
+    r_available: bool
+    rscript_available: bool
+    r_version: Optional[str] = None
+    rscript_version: Optional[str] = None
+    biocmanager_available: bool
+    deseq2_available: bool
+    checked_at: str
+    commands_checked: List[str] = Field(default_factory=list)
+
+
+class FormalDEPreflightResponse(BaseModel):
+    status: str = "formal_de_preflight_completed"
+    formal_method: str = "deseq2"
+    ready: bool
+    checks: FormalDEPreflightChecks
+    warnings: List[str] = Field(default_factory=list)
+    errors: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)

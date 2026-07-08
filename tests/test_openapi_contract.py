@@ -9,6 +9,7 @@ EXPECTED_PATH_METHODS = {
     "/health": "get",
     "/task/create": "post",
     "/task/validate-inputs": "post",
+    "/task/formal-de/preflight": "get",
     "/task/{task_id}/status": "get",
     "/task/plan": "post",
     "/task/qc": "post",
