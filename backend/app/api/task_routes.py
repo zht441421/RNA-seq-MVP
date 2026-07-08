@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from backend.app.models.task import (
     AnalysisPlanRequest,
@@ -33,6 +34,10 @@ from backend.app.services.artifact_paths import (
     list_dry_run_record_specs,
     list_minimal_rnaseq_artifact_specs,
     list_placeholder_artifact_specs,
+)
+from backend.app.services.artifact_download import (
+    ArtifactDownloadError,
+    get_artifact_download_payload,
 )
 from backend.app.services.deseq2_execution import (
     DESEQ2_ANALYSIS_METHOD,
@@ -735,6 +740,20 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
             "This endpoint does not create or write real artifact files.",
             "Real artifact generation will be implemented in a later phase.",
         ],
+    )
+
+
+@router.get("/{task_id}/artifacts/{artifact_name:path}/download")
+def download_task_artifact(task_id: str, artifact_name: str) -> FileResponse:
+    try:
+        payload = get_artifact_download_payload(task_id, artifact_name)
+    except ArtifactDownloadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+
+    return FileResponse(
+        payload.path,
+        media_type=payload.media_type,
+        filename=payload.filename,
     )
 
 

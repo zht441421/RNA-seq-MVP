@@ -16,6 +16,7 @@ EXPECTED_PATH_METHODS = {
     "/task/run": "post",
     "/task/{task_id}/report": "get",
     "/task/{task_id}/artifacts": "get",
+    "/task/{task_id}/artifacts/{artifact_name}/download": "get",
     "/task/{task_id}/audit": "get",
 }
 

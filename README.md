@@ -41,6 +41,10 @@ results are for pipeline validation only.
 Phase 5 begins with a local SQLite persistent task storage foundation for task
 metadata, status, lifecycle events, and artifact metadata.
 
+Phase 5.2 adds `GET /task/{task_id}/artifacts/{artifact_name}/download` for
+safe, task-scoped artifact downloads; see
+`docs/phase-5-artifact-download-contract.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

@@ -322,6 +322,55 @@
         }
       }
     },
+    "/task/{task_id}/artifacts/{artifact_name}/download": {
+      "get": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Download Task Artifact",
+        "operationId": "download_task_artifact_task__task_id__artifacts__artifact_name__download_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "artifact_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artifact Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/{task_id}/audit": {
       "get": {
         "tags": [
