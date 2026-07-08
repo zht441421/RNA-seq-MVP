@@ -1,10 +1,14 @@
-# Phase 4.1 Minimal Bulk RNA-seq MVP
+# Phase 4 Minimal Bulk RNA-seq MVP
 
 Phase 4.1 introduces the first real internal Bulk RNA-seq execution path for
 the task API. It reads real metadata and count matrix files, validates sample
 alignment, computes basic QC metrics, writes CPM-normalized counts, and writes a
 preliminary group-level log2 fold-change ranking when exactly two condition
 groups are present.
+
+Phase 4.2 strengthens the input content validation layer so invalid metadata or
+count matrices fail deterministically before any analysis artifacts are
+generated.
 
 This phase is intentionally modest. It does not implement a formal
 differential expression statistical method and does not report p-values or
@@ -45,6 +49,30 @@ default input root is `data/inputs` under the repository.
 Only safe relative paths are accepted. Absolute paths and path traversal are
 rejected by the Phase 3.4 input validation layer.
 
+## Phase 4.2 Content Validation
+
+Minimal real execution validates file contents after path validation and before
+creating analysis outputs. A validation failure returns `422 Unprocessable
+Entity` with a stable public error shape:
+
+```json
+{
+  "detail": {
+    "error_code": "RNASEQ_INPUT_VALIDATION_FAILED",
+    "message": "RNA-seq input validation failed.",
+    "errors": [],
+    "warnings": []
+  }
+}
+```
+
+The error details are deterministic and must not expose local absolute paths,
+tracebacks, tokens, passwords, secrets, or internal stack details.
+
+On validation failure, the task is not marked as a completed minimal analysis.
+The registry may record `minimal_analysis_validation_failed`, and no analysis
+output files are written.
+
 ## `metadata.csv`
 
 Required columns:
@@ -62,6 +90,18 @@ sample_3,treatment
 sample_4,treatment
 ```
 
+Metadata content requirements:
+
+- `sample_id` and `condition` are required.
+- Empty files are rejected.
+- Empty or whitespace-only `sample_id` and `condition` values are rejected.
+- Duplicate `sample_id` values are rejected.
+- At least two distinct samples are required.
+- Exactly two condition groups are supported for Phase 4.2.
+- One condition group is rejected as non-comparable.
+- More than two condition groups are rejected as unsupported by the preliminary
+  log2 fold-change workflow.
+
 ## `counts.csv`
 
 The first column must be `gene_id`. All remaining columns must be sample IDs
@@ -77,6 +117,24 @@ GeneB,5,3,4,6
 
 CSV, TSV, and tabular TXT files are supported through the existing safe suffix
 contract.
+
+Count matrix content requirements:
+
+- The first column must be `gene_id`.
+- Empty files are rejected.
+- Empty or whitespace-only `gene_id` values are rejected.
+- Duplicate `gene_id` values are rejected.
+- Duplicate sample columns are rejected when detectable.
+- Count values must be present, numeric, finite, non-negative, and integer-like.
+- Missing, non-numeric, negative, and non-finite count values are rejected.
+- Count sample columns must exactly match the metadata `sample_id` set.
+- Extra or missing count sample columns are rejected.
+- All-zero genes may be filtered by the low-count filter.
+- Any all-zero sample, also called a zero-library sample, is rejected.
+
+Sample alignment supports count columns in a different order from the metadata
+rows. When the sample sets match, the executor reorders counts to metadata
+sample order before writing outputs.
 
 ## Output Artifacts
 
@@ -97,6 +155,7 @@ Public API responses expose only safe relative paths such as
 
 - Metadata and count matrix files are read from disk.
 - Required columns and sample alignment are validated.
+- Metadata and count matrix content validation fails before output generation.
 - Library sizes are computed from the count matrix.
 - CPM-normalized counts are computed.
 - Low-expression filtering is applied for the preliminary ranking with

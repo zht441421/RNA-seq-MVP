@@ -1,3 +1,4 @@
+import csv
 import json
 from pathlib import Path
 
@@ -175,9 +176,17 @@ def test_task_run_minimal_rnaseq_writes_real_artifacts(
     execution_summary = json.loads(
         (output_dir / "execution_summary.json").read_text(encoding="utf-8")
     )
+    with (output_dir / "differential_expression_results.csv").open(
+        "r",
+        encoding="utf-8",
+        newline="",
+    ) as result_file:
+        result_fieldnames = csv.DictReader(result_file).fieldnames or []
+
     assert qc_summary["sample_count"] == 4
     assert qc_summary["gene_count"] == 3
     assert qc_summary["retained_gene_count_after_filtering"] == 2
     assert execution_summary["real_execution_performed"] is True
     assert execution_summary["external_tools_called"] is False
     assert execution_summary["statistical_test_performed"] is False
+    assert {"pvalue", "padj", "qvalue"}.isdisjoint(result_fieldnames)

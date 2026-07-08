@@ -434,3 +434,6 @@ metadata and count matrix files, computes basic QC metrics, writes CPM-normalize
 counts, and produces a clearly labeled preliminary log2 fold-change ranking
 without running DESeq2, edgeR, limma, enrichment analysis, workflow engines,
 external command-line tools, Coze calls, or database persistence.
+
+Phase 4.2 strengthens the Phase 4.1 path with deterministic metadata and count
+matrix content validation before any minimal analysis outputs are generated.

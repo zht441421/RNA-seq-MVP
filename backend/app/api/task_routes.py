@@ -36,12 +36,18 @@ from backend.app.services.execution_adapter import (
     execute_task_minimal_rnaseq,
     execute_task_placeholder,
 )
+from backend.app.services.rnaseq_minimal import MinimalRNASeqValidationError
 from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
     validate_rnaseq_input_files,
 )
-from backend.app.services.task_service import create_task, get_task, update_task_status
+from backend.app.services.task_service import (
+    append_lifecycle_event,
+    create_task,
+    get_task,
+    update_task_status,
+)
 
 
 router = APIRouter(prefix="/task", tags=["task"])
@@ -175,6 +181,32 @@ def _minimal_artifacts_exist(task_id: str) -> bool:
     return any(
         artifact["name"] == "normalized_counts_cpm.csv" and artifact["exists"]
         for artifact in list_minimal_rnaseq_artifact_specs(task_id)
+    )
+
+
+def _ensure_can_mark_run_ready(task: TaskRecord) -> None:
+    if task.status != TaskStatus.QC_PLACEHOLDER_READY:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Invalid task status transition: "
+                f"{task.status.value} -> {TaskStatus.RUN_PLACEHOLDER_READY.value}"
+            ),
+        )
+
+
+def _append_minimal_validation_failed_event(
+    task_id: str,
+    exc: MinimalRNASeqValidationError,
+) -> None:
+    append_lifecycle_event(
+        task_id=task_id,
+        event_type="minimal_analysis_validation_failed",
+        message="Minimal real Bulk RNA-seq input validation failed.",
+        metadata={
+            "error_code": exc.error_code,
+            "error_count": len(exc.errors),
+        },
     )
 
 
@@ -326,26 +358,11 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
     _validate_run_mode_request(request)
     is_minimal_real_run = _is_minimal_real_run_request(request)
 
-    _update_registry_status_or_404(
-        task_id=request.task_id,
-        status=TaskStatus.RUN_PLACEHOLDER_READY,
-        event_type=(
-            "minimal_rnaseq_executed"
-            if is_minimal_real_run
-            else "run_placeholder_executed"
-        ),
-        message=(
-            "Minimal real Bulk RNA-seq MVP execution completed and task status updated."
-            if is_minimal_real_run
-            else (
-                "Placeholder run executed and task status updated. "
-                "No real RNA-seq analysis was performed."
-            )
-        ),
-    )
     task = _get_registry_task_or_404(request.task_id)
-    try:
-        if is_minimal_real_run:
+
+    if is_minimal_real_run:
+        _ensure_can_mark_run_ready(task)
+        try:
             execution_result = execute_task_minimal_rnaseq(
                 task_id=request.task_id,
                 metadata_file=request.metadata_file or "",
@@ -354,17 +371,21 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 project_name=request.project_name,
                 omics_type=request.omics_type,
             )
-        else:
-            execution_result = execute_task_placeholder(
-                task_id=request.task_id,
-                registry_record=task,
-                project_name=request.project_name,
-                omics_type=request.omics_type,
-            )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except MinimalRNASeqValidationError as exc:
+            _append_minimal_validation_failed_event(request.task_id, exc)
+            raise HTTPException(status_code=422, detail=exc.to_detail()) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Minimal RNA-seq execution failed.",
+            ) from exc
 
-    if is_minimal_real_run:
+        _update_registry_status_or_404(
+            task_id=request.task_id,
+            status=TaskStatus.RUN_PLACEHOLDER_READY,
+            event_type="minimal_rnaseq_executed",
+            message="Minimal real Bulk RNA-seq MVP execution completed and task status updated.",
+        )
         return TaskRunResponse(
             task_id=request.task_id,
             project_name=request.project_name,
@@ -392,6 +413,25 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             artifacts=_run_artifacts(execution_result),
             limitations=execution_result.limitations,
         )
+
+    _update_registry_status_or_404(
+        task_id=request.task_id,
+        status=TaskStatus.RUN_PLACEHOLDER_READY,
+        event_type="run_placeholder_executed",
+        message=(
+            "Placeholder run executed and task status updated. "
+            "No real RNA-seq analysis was performed."
+        ),
+    )
+    try:
+        execution_result = execute_task_placeholder(
+            task_id=request.task_id,
+            registry_record=task,
+            project_name=request.project_name,
+            omics_type=request.omics_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return TaskRunResponse(
         task_id=request.task_id,

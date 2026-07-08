@@ -10,6 +10,9 @@ class ValidationResult:
     valid: bool
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    sample_count: int = 0
+    gene_count: int = 0
+    condition_counts: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -19,6 +22,41 @@ class CountMatrix:
     values: dict[str, dict[str, float]]
     gene_id_column: str = "gene_id"
     raw_total_counts: dict[str, float] = field(default_factory=dict)
+
+
+class MinimalRNASeqValidationError(ValueError):
+    def __init__(
+        self,
+        errors: list[str],
+        warnings: list[str] | None = None,
+        *,
+        error_code: str = "RNASEQ_INPUT_VALIDATION_FAILED",
+        message: str = "RNA-seq input validation failed.",
+    ) -> None:
+        safe_errors = [error for error in errors if error]
+        self.error_code = error_code
+        self.message = message
+        self.errors = safe_errors or [message]
+        self.warnings = [warning for warning in warnings or [] if warning]
+        super().__init__(message)
+
+    def to_detail(self) -> dict:
+        return {
+            "error_code": self.error_code,
+            "message": self.message,
+            "errors": list(self.errors),
+            "warnings": list(self.warnings),
+        }
+
+
+def build_validation_error(
+    errors: list[str],
+    warnings: list[str] | None = None,
+) -> MinimalRNASeqValidationError:
+    return MinimalRNASeqValidationError(
+        errors=_unique_non_empty(errors),
+        warnings=_unique_non_empty(warnings or []),
+    )
 
 
 def read_metadata(path: Path) -> list[dict]:
@@ -100,7 +138,19 @@ def read_count_matrix(path: Path) -> CountMatrix:
     )
 
 
+def normalize_metadata_rows(metadata: list[dict]) -> list[dict]:
+    return [
+        {
+            _clean_cell(key): _clean_cell(value)
+            for key, value in row.items()
+            if key is not None
+        }
+        for row in metadata
+    ]
+
+
 def validate_metadata(metadata: list[dict]) -> ValidationResult:
+    metadata = normalize_metadata_rows(metadata)
     errors: list[str] = []
     if not metadata:
         errors.append("Metadata must contain at least one sample row.")
@@ -124,7 +174,26 @@ def validate_metadata(metadata: list[dict]) -> ValidationResult:
     if duplicates:
         errors.append(f"Metadata contains duplicate sample_id values: {', '.join(duplicates)}.")
 
-    return ValidationResult(valid=not errors, errors=errors)
+    non_empty_sample_ids = [sample_id for sample_id in sample_ids if sample_id]
+    if len(set(non_empty_sample_ids)) < 2:
+        errors.append("Metadata must contain at least 2 distinct samples.")
+
+    condition_counts = _condition_counts(metadata)
+    if len(condition_counts) < 2:
+        errors.append(
+            "Metadata must contain exactly 2 condition groups for preliminary log2 fold-change."
+        )
+    elif len(condition_counts) > 2:
+        errors.append(
+            "Metadata contains more than 2 condition groups; minimal RNA-seq supports exactly 2 condition groups."
+        )
+
+    return ValidationResult(
+        valid=not errors,
+        errors=errors,
+        sample_count=len(non_empty_sample_ids),
+        condition_counts=condition_counts,
+    )
 
 
 def validate_count_matrix(counts: CountMatrix) -> ValidationResult:
@@ -168,23 +237,54 @@ def validate_count_matrix(counts: CountMatrix) -> ValidationResult:
             elif not float(value).is_integer():
                 errors.append(f"Count matrix has a non-integer count for gene {gene_id}.")
 
-    return ValidationResult(valid=not errors, errors=errors)
+    if counts.sample_ids and counts.gene_ids:
+        library_sizes = {sample_id: 0.0 for sample_id in counts.sample_ids}
+        can_validate_library_sizes = True
+        for gene_id in counts.gene_ids:
+            row = counts.values.get(gene_id, {})
+            for sample_id in counts.sample_ids:
+                value = row.get(sample_id)
+                if value is None or not math.isfinite(value) or value < 0:
+                    can_validate_library_sizes = False
+                    continue
+                library_sizes[sample_id] += value
+        if can_validate_library_sizes:
+            zero_library_samples = [
+                sample_id
+                for sample_id, library_size in library_sizes.items()
+                if sample_id and library_size == 0
+            ]
+            if zero_library_samples:
+                errors.append(
+                    "Count matrix contains zero library size samples: "
+                    + ", ".join(zero_library_samples)
+                    + "."
+                )
+
+    return ValidationResult(
+        valid=not errors,
+        errors=errors,
+        sample_count=len([sample_id for sample_id in counts.sample_ids if sample_id]),
+        gene_count=len([gene_id for gene_id in counts.gene_ids if gene_id]),
+    )
 
 
 def validate_sample_alignment(metadata: list[dict], counts: CountMatrix) -> ValidationResult:
     errors: list[str] = []
     warnings: list[str] = []
-    metadata_sample_ids = [_clean_cell(row.get("sample_id")) for row in metadata]
+    metadata_sample_ids = [_clean_cell(row.get("sample_id")) for row in normalize_metadata_rows(metadata)]
     metadata_sample_ids = [sample_id for sample_id in metadata_sample_ids if sample_id]
 
     metadata_samples = set(metadata_sample_ids)
-    count_samples = set(counts.sample_ids)
+    count_sample_ids = [_clean_cell(sample_id) for sample_id in counts.sample_ids]
+    count_sample_ids = [sample_id for sample_id in count_sample_ids if sample_id]
+    count_samples = set(count_sample_ids)
 
     missing_from_counts = [
         sample_id for sample_id in metadata_sample_ids if sample_id not in count_samples
     ]
     extra_in_counts = [
-        sample_id for sample_id in counts.sample_ids if sample_id not in metadata_samples
+        sample_id for sample_id in count_sample_ids if sample_id not in metadata_samples
     ]
     if missing_from_counts:
         errors.append(
@@ -199,10 +299,67 @@ def validate_sample_alignment(metadata: list[dict], counts: CountMatrix) -> Vali
             + "."
         )
 
-    if not errors and metadata_sample_ids != counts.sample_ids:
+    if not errors and metadata_sample_ids != count_sample_ids:
         warnings.append("Metadata sample order differs from count matrix; samples were matched by ID.")
 
-    return ValidationResult(valid=not errors, errors=errors, warnings=warnings)
+    return ValidationResult(
+        valid=not errors,
+        errors=errors,
+        warnings=warnings,
+        sample_count=len(metadata_sample_ids),
+    )
+
+
+def validate_minimal_inputs(metadata: list[dict], counts: CountMatrix) -> ValidationResult:
+    metadata_result = validate_metadata(metadata)
+    count_result = validate_count_matrix(counts)
+    alignment_result = validate_sample_alignment(metadata, counts)
+    errors = [
+        error
+        for result in (metadata_result, count_result, alignment_result)
+        for error in result.errors
+    ]
+    warnings = [
+        warning
+        for result in (metadata_result, count_result, alignment_result)
+        for warning in result.warnings
+    ]
+    return ValidationResult(
+        valid=not errors,
+        errors=_unique_non_empty(errors),
+        warnings=_unique_non_empty(warnings),
+        sample_count=metadata_result.sample_count,
+        gene_count=count_result.gene_count,
+        condition_counts=dict(metadata_result.condition_counts),
+    )
+
+
+def reorder_counts_to_metadata(metadata: list[dict], counts: CountMatrix) -> CountMatrix:
+    metadata_sample_ids = [
+        _clean_cell(row.get("sample_id"))
+        for row in normalize_metadata_rows(metadata)
+        if _clean_cell(row.get("sample_id"))
+    ]
+    if metadata_sample_ids == counts.sample_ids:
+        return counts
+
+    if set(metadata_sample_ids) != set(counts.sample_ids):
+        raise ValueError("Count matrix samples cannot be reordered because sample IDs do not align.")
+
+    reordered_values = {
+        gene_id: {
+            sample_id: counts.values[gene_id][sample_id]
+            for sample_id in metadata_sample_ids
+        }
+        for gene_id in counts.gene_ids
+    }
+    return CountMatrix(
+        gene_ids=list(counts.gene_ids),
+        sample_ids=list(metadata_sample_ids),
+        values=reordered_values,
+        gene_id_column=counts.gene_id_column,
+        raw_total_counts=_gene_totals(counts.gene_ids, metadata_sample_ids, reordered_values),
+    )
 
 
 def compute_library_sizes(counts: CountMatrix) -> dict:
@@ -386,6 +543,20 @@ def _duplicates(values: list[str]) -> list[str]:
     return duplicates
 
 
+def _unique_non_empty(values: list[str]) -> list[str]:
+    return _unique_preserving_first_seen([value for value in values if value])
+
+
+def _unique_preserving_first_seen(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        if value not in seen:
+            unique_values.append(value)
+            seen.add(value)
+    return unique_values
+
+
 def _gene_totals(
     gene_ids: list[str],
     sample_ids: list[str],
@@ -410,6 +581,15 @@ def _condition_order(metadata: list[dict]) -> list[str]:
         if condition and condition not in conditions:
             conditions.append(condition)
     return conditions
+
+
+def _condition_counts(metadata: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in metadata:
+        condition = _clean_cell(row.get("condition"))
+        if condition:
+            counts[condition] = counts.get(condition, 0) + 1
+    return counts
 
 
 def _mean(values: object) -> float:

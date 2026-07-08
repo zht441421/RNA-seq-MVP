@@ -15,15 +15,15 @@ from backend.app.services.artifact_paths import (
 from backend.app.services.input_validation import validate_rnaseq_input_files
 from backend.app.services.rnaseq_minimal import (
     CountMatrix,
+    build_validation_error,
     compute_cpm,
     compute_library_sizes,
     compute_preliminary_log2fc,
     filter_low_expression,
     read_count_matrix,
     read_metadata,
-    validate_count_matrix,
-    validate_metadata,
-    validate_sample_alignment,
+    reorder_counts_to_metadata,
+    validate_minimal_inputs,
     write_csv,
     write_json,
     write_markdown_report,
@@ -316,8 +316,8 @@ def run_minimal_bulk_rnaseq(
     executor_name: str = "minimal_bulk_rnaseq_executor",
 ) -> ExecutionResult:
     if not request.metadata_file or not request.count_matrix_file:
-        raise ValueError(
-            "metadata_file and count_matrix_file are required for minimal_real execution."
+        raise build_validation_error(
+            ["metadata_file and count_matrix_file are required for minimal_real execution."]
         )
 
     path_validation = validate_rnaseq_input_files(
@@ -325,31 +325,27 @@ def run_minimal_bulk_rnaseq(
         count_matrix_file=request.count_matrix_file,
     )
     if not path_validation.valid:
-        raise ValueError("Input file validation failed: " + "; ".join(path_validation.errors))
+        raise build_validation_error(path_validation.errors)
     if path_validation.metadata.resolved_path is None:
-        raise ValueError("Input file validation failed: metadata_file could not be resolved.")
+        raise build_validation_error(["metadata_file could not be resolved under input root."])
     if path_validation.count_matrix.resolved_path is None:
-        raise ValueError("Input file validation failed: count_matrix_file could not be resolved.")
+        raise build_validation_error(["count_matrix_file could not be resolved under input root."])
 
-    metadata = read_metadata(path_validation.metadata.resolved_path)
-    counts = read_count_matrix(path_validation.count_matrix.resolved_path)
-    validation_results = [
-        validate_metadata(metadata),
-        validate_count_matrix(counts),
-        validate_sample_alignment(metadata, counts),
-    ]
-    validation_errors = [
-        error
-        for validation_result in validation_results
-        for error in validation_result.errors
-    ]
-    warnings = [
-        warning
-        for validation_result in validation_results
-        for warning in validation_result.warnings
-    ]
-    if validation_errors:
-        raise ValueError("Minimal RNA-seq input validation failed: " + "; ".join(validation_errors))
+    try:
+        metadata = read_metadata(path_validation.metadata.resolved_path)
+        counts = read_count_matrix(path_validation.count_matrix.resolved_path)
+    except ValueError as exc:
+        raise build_validation_error([str(exc)]) from exc
+
+    validation_result = validate_minimal_inputs(metadata, counts)
+    warnings = list(validation_result.warnings)
+    if not validation_result.valid:
+        raise build_validation_error(validation_result.errors, warnings)
+
+    try:
+        counts = reorder_counts_to_metadata(metadata, counts)
+    except ValueError as exc:
+        raise build_validation_error([str(exc)], warnings) from exc
 
     output_dir = ensure_task_output_dir(request.task_id)
     output_dir_relative = output_dir.relative_to(get_output_root()).as_posix()
@@ -362,13 +358,7 @@ def run_minimal_bulk_rnaseq(
     condition_counts = _condition_counts(metadata)
     warnings.extend(_library_size_warnings(library_sizes))
 
-    preliminary_rows: list[dict] = []
-    if len(condition_counts) == 2:
-        preliminary_rows = compute_preliminary_log2fc(filtered_cpm, metadata)
-    else:
-        warnings.append(
-            "Preliminary log2 fold-change ranking was skipped because exactly two condition groups were not present."
-        )
+    preliminary_rows = compute_preliminary_log2fc(filtered_cpm, metadata)
 
     qc_summary = {
         "task_id": request.task_id,
