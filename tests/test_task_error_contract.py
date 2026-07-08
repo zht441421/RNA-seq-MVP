@@ -153,8 +153,14 @@ def test_artifacts_and_audit_return_deterministic_placeholder_responses() -> Non
         "artifact_1",
         "artifact_2",
         "artifact_3",
+        "artifact_4",
     ]
-    assert all(artifact["path"] is None for artifact in artifacts["artifacts"])
+    assert [artifact["path"] for artifact in artifacts["artifacts"]] == [
+        f"tasks/{task_id}/run_summary.json",
+        f"tasks/{task_id}/qc_summary.json",
+        f"tasks/{task_id}/differential_expression_results.csv",
+        f"tasks/{task_id}/report.md",
+    ]
     assert all(artifact["available"] is False for artifact in artifacts["artifacts"])
     _assert_no_forbidden_fragments(artifacts)
 

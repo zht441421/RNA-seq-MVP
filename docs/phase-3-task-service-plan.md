@@ -227,6 +227,64 @@ This endpoint does not mutate the in-memory task registry and does not advance
 the placeholder lifecycle. It is a deterministic preflight contract for future
 execution work only.
 
+## Phase 3.5 Artifact and Output Directory Contract Foundation
+
+Phase 3.5 adds an internal artifact path service for future task outputs. The
+service lives in `backend/app/services/artifact_paths.py` and defines where
+future RNA-seq task outputs may be planned without generating real result
+files.
+
+The output root is:
+
+- `BIOINFO_OUTPUT_ROOT`, when the environment variable is set.
+- `data/outputs`, relative to the project root, when the environment variable
+  is not set.
+
+Task outputs are scoped under deterministic task directories:
+
+```text
+tasks/<task_id>/
+```
+
+The path layer rejects unsafe task IDs that are empty, contain null bytes,
+contain slashes or backslashes, contain path traversal, or contain colons.
+Safe task IDs such as `task_0001`, `task_demo`, and `task-abc_123` are accepted.
+
+Artifact filenames must be single safe filenames. The path layer rejects
+absolute artifact paths, nested paths, path traversal, null bytes, colons, and
+unsupported suffixes. The allowed placeholder artifact suffixes are:
+
+- `.json`
+- `.csv`
+- `.tsv`
+- `.txt`
+- `.md`
+- `.html`
+- `.png`
+- `.pdf`
+
+Phase 3.5 defines planned placeholder artifact specs for each task:
+
+- `tasks/<task_id>/run_summary.json`
+- `tasks/<task_id>/qc_summary.json`
+- `tasks/<task_id>/differential_expression_results.csv`
+- `tasks/<task_id>/report.md`
+
+These paths are an output contract only. Phase 3.5 does not create biological
+analysis files, fake result tables, report files, execution logs, or durable
+artifact records. The only allowed filesystem creation in this phase is creating
+the task output directory through the internal `ensure_task_output_dir()` helper
+when a caller explicitly asks for it.
+
+`GET /task/{task_id}/artifacts` now uses this planned artifact contract while
+keeping the existing public response model. It exposes safe relative paths in
+the existing `path` field and uses `available` to reflect whether a planned file
+currently exists. It does not expose local absolute filesystem paths in public
+responses and does not write any artifact files.
+
+Future Phase 3.6 work should introduce an execution adapter boundary before any
+real runner, queue, workflow engine, or RNA-seq computation is wired in.
+
 ## Known Limitations
 
 - No real RNA-seq execution is implemented.
@@ -240,10 +298,11 @@ execution work only.
 - No Snakemake workflow is run.
 - Input validation checks path safety, allowed suffixes, and existence only; it
   does not parse file contents or validate RNA-seq schemas yet.
+- Artifact path handling defines safe planned output locations only; it does
+  not generate artifact files or real biological results.
 
 ## Next Recommended Phases
 
-- Define the output artifact directory contract before creating artifacts.
 - Introduce an execution adapter interface with mock and dry-run backends first.
 - Only later integrate real RNA-seq tools after state, validation, artifact,
   and execution adapter contracts are tested.

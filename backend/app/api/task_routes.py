@@ -26,6 +26,7 @@ from backend.app.models.task import (
     TaskValidateInputsRequest,
     TaskValidateInputsResponse,
 )
+from backend.app.services.artifact_paths import list_placeholder_artifact_specs
 from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
@@ -354,33 +355,18 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
         status="artifacts_placeholder_ready",
         artifacts=[
             TaskArtifact(
-                artifact_id="artifact_1",
-                name="qc_report_placeholder.md",
-                artifact_type="qc_report",
-                path=None,
-                description="Placeholder QC report artifact. No file is generated yet.",
-                available=False,
-            ),
-            TaskArtifact(
-                artifact_id="artifact_2",
-                name="analysis_report_placeholder.md",
-                artifact_type="analysis_report",
-                path=None,
-                description="Placeholder analysis report artifact. No file is generated yet.",
-                available=False,
-            ),
-            TaskArtifact(
-                artifact_id="artifact_3",
-                name="audit_log_placeholder.json",
-                artifact_type="audit_log",
-                path=None,
-                description="Placeholder audit log artifact. No file is generated yet.",
-                available=False,
-            ),
+                artifact_id=f"artifact_{index}",
+                name=artifact["name"],
+                artifact_type=artifact["artifact_type"],
+                path=artifact["relative_path"],
+                description=artifact["description"],
+                available=artifact["exists"],
+            )
+            for index, artifact in enumerate(list_placeholder_artifact_specs(task_id), start=1)
         ],
         limitations=[
-            "This endpoint does not read or write real artifact files.",
-            "Artifact paths are placeholders and are not downloadable yet.",
+            "This endpoint lists planned safe relative artifact paths only.",
+            "This endpoint does not create or write real artifact files.",
             "Real artifact generation will be implemented in a later phase.",
         ],
     )
