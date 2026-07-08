@@ -62,6 +62,42 @@ _DRY_RUN_RECORD_ARTIFACTS = [
     },
 ]
 
+_MINIMAL_RNASEQ_ARTIFACTS = [
+    {
+        "name": "run_manifest.json",
+        "artifact_type": "minimal_run_manifest",
+        "description": "Generated manifest for the minimal real Bulk RNA-seq MVP execution.",
+    },
+    {
+        "name": "execution_summary.json",
+        "artifact_type": "minimal_execution_summary",
+        "description": "Generated execution summary for the minimal real Bulk RNA-seq MVP execution.",
+    },
+    {
+        "name": "qc_summary.json",
+        "artifact_type": "minimal_qc_summary",
+        "description": "Generated basic QC metrics from the provided metadata and count matrix.",
+    },
+    {
+        "name": "normalized_counts_cpm.csv",
+        "artifact_type": "normalized_counts_cpm",
+        "description": "Generated CPM-normalized count table.",
+    },
+    {
+        "name": "differential_expression_results.csv",
+        "artifact_type": "preliminary_log2fc_ranking",
+        "description": (
+            "Generated preliminary log2 fold-change ranking. "
+            "No formal differential expression statistical test is represented."
+        ),
+    },
+    {
+        "name": "report.md",
+        "artifact_type": "minimal_analysis_report",
+        "description": "Generated report describing the minimal Bulk RNA-seq MVP analysis and limitations.",
+    },
+]
+
 
 def get_output_root() -> Path:
     configured_root = os.environ.get("BIOINFO_OUTPUT_ROOT", "").strip()
@@ -152,6 +188,27 @@ def list_dry_run_record_specs(task_id: str) -> list[dict]:
                 "limitations": [
                     "This is a dry-run execution contract record only.",
                     "No real RNA-seq output or statistical result is represented by this file.",
+                ],
+            }
+        )
+    return specs
+
+
+def list_minimal_rnaseq_artifact_specs(task_id: str) -> list[dict]:
+    specs: list[dict] = []
+    for artifact in _MINIMAL_RNASEQ_ARTIFACTS:
+        filename = artifact["name"]
+        specs.append(
+            {
+                "name": filename,
+                "relative_path": get_task_artifact_relative_path(task_id, filename),
+                "artifact_type": artifact["artifact_type"],
+                "exists": resolve_task_artifact_path(task_id, filename).is_file(),
+                "description": artifact["description"],
+                "limitations": [
+                    "This file is produced by the minimal real Bulk RNA-seq MVP executor.",
+                    "The analysis is limited to QC metrics, CPM normalization, and preliminary ranking.",
+                    "No formal differential expression statistical test is represented by this artifact.",
                 ],
             }
         )

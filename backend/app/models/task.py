@@ -108,6 +108,9 @@ class TaskRunRequest(BaseModel):
     analysis_goal: List[str] = Field(default_factory=list)
     group_column: Optional[str] = None
     contrast: Optional[str] = None
+    metadata_file: Optional[str] = None
+    count_matrix_file: Optional[str] = None
+    execution_mode: Optional[str] = None
 
 
 class TaskRunStep(BaseModel):

@@ -28,9 +28,14 @@ from backend.app.models.task import (
 )
 from backend.app.services.artifact_paths import (
     list_dry_run_record_specs,
+    list_minimal_rnaseq_artifact_specs,
     list_placeholder_artifact_specs,
 )
-from backend.app.services.execution_adapter import ExecutionResult, execute_task_placeholder
+from backend.app.services.execution_adapter import (
+    ExecutionResult,
+    execute_task_minimal_rnaseq,
+    execute_task_placeholder,
+)
 from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
@@ -115,6 +120,13 @@ def _run_artifacts(execution_result: ExecutionResult) -> list[dict]:
 
 
 def _artifact_specs_for_response(task_id: str) -> list[dict]:
+    minimal_artifacts = list_minimal_rnaseq_artifact_specs(task_id)
+    if any(
+        artifact["name"] == "normalized_counts_cpm.csv" and artifact["exists"]
+        for artifact in minimal_artifacts
+    ):
+        return minimal_artifacts
+
     return [
         *list_placeholder_artifact_specs(task_id),
         *[
@@ -123,6 +135,47 @@ def _artifact_specs_for_response(task_id: str) -> list[dict]:
             if artifact["exists"]
         ],
     ]
+
+
+def _is_minimal_real_run_request(request: TaskRunRequest) -> bool:
+    return (
+        request.execution_mode == "minimal_real"
+        or bool(request.metadata_file and request.count_matrix_file)
+    )
+
+
+def _validate_run_mode_request(request: TaskRunRequest) -> None:
+    if request.execution_mode not in (None, "dry_run", "placeholder", "minimal_real"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported execution_mode: {request.execution_mode}",
+        )
+
+    if request.execution_mode == "minimal_real" and (
+        not request.metadata_file or not request.count_matrix_file
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "metadata_file and count_matrix_file are both required "
+                "for minimal_real execution."
+            ),
+        )
+
+    if (request.metadata_file and not request.count_matrix_file) or (
+        request.count_matrix_file and not request.metadata_file
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="metadata_file and count_matrix_file must be supplied together.",
+        )
+
+
+def _minimal_artifacts_exist(task_id: str) -> bool:
+    return any(
+        artifact["name"] == "normalized_counts_cpm.csv" and artifact["exists"]
+        for artifact in list_minimal_rnaseq_artifact_specs(task_id)
+    )
 
 
 @router.post("/create", response_model=TaskResponse)
@@ -270,22 +323,75 @@ def create_qc_plan(request: QCRequest) -> QCResponse:
 
 @router.post("/run", response_model=TaskRunResponse)
 def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
+    _validate_run_mode_request(request)
+    is_minimal_real_run = _is_minimal_real_run_request(request)
+
     _update_registry_status_or_404(
         task_id=request.task_id,
         status=TaskStatus.RUN_PLACEHOLDER_READY,
-        event_type="run_placeholder_executed",
+        event_type=(
+            "minimal_rnaseq_executed"
+            if is_minimal_real_run
+            else "run_placeholder_executed"
+        ),
         message=(
-            "Placeholder run executed and task status updated. "
-            "No real RNA-seq analysis was performed."
+            "Minimal real Bulk RNA-seq MVP execution completed and task status updated."
+            if is_minimal_real_run
+            else (
+                "Placeholder run executed and task status updated. "
+                "No real RNA-seq analysis was performed."
+            )
         ),
     )
     task = _get_registry_task_or_404(request.task_id)
-    execution_result = execute_task_placeholder(
-        task_id=request.task_id,
-        registry_record=task,
-        project_name=request.project_name,
-        omics_type=request.omics_type,
-    )
+    try:
+        if is_minimal_real_run:
+            execution_result = execute_task_minimal_rnaseq(
+                task_id=request.task_id,
+                metadata_file=request.metadata_file or "",
+                count_matrix_file=request.count_matrix_file or "",
+                registry_record=task,
+                project_name=request.project_name,
+                omics_type=request.omics_type,
+            )
+        else:
+            execution_result = execute_task_placeholder(
+                task_id=request.task_id,
+                registry_record=task,
+                project_name=request.project_name,
+                omics_type=request.omics_type,
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if is_minimal_real_run:
+        return TaskRunResponse(
+            task_id=request.task_id,
+            project_name=request.project_name,
+            status="minimal_analysis_completed",
+            run_steps=[
+                TaskRunStep(
+                    step_id="run_1",
+                    name="Validate and load inputs",
+                    status="completed",
+                    message="Input paths were validated and tabular files were parsed.",
+                ),
+                TaskRunStep(
+                    step_id="run_2",
+                    name="Compute basic QC metrics",
+                    status="completed",
+                    message="Library sizes, sample counts, condition counts, and low-count filtering were computed.",
+                ),
+                TaskRunStep(
+                    step_id="run_3",
+                    name="Compute preliminary ranking",
+                    status="completed",
+                    message="CPM normalization and preliminary log2 fold-change ranking were computed without statistical testing.",
+                ),
+            ],
+            artifacts=_run_artifacts(execution_result),
+            limitations=execution_result.limitations,
+        )
 
     return TaskRunResponse(
         task_id=request.task_id,
@@ -380,15 +486,40 @@ def get_task_report(task_id: str) -> TaskReportResponse:
 
 @router.get("/{task_id}/artifacts", response_model=TaskArtifactsResponse)
 def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
-    _update_registry_status_or_404(
-        task_id=task_id,
-        status=TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
-        event_type="artifacts_placeholder_listed",
-        message=(
-            "Placeholder artifacts listed and task status updated. "
-            "No real files were generated."
-        ),
-    )
+    task = _get_registry_task_or_404(task_id)
+    if task.status == TaskStatus.REPORT_PLACEHOLDER_READY:
+        _update_registry_status_or_404(
+            task_id=task_id,
+            status=TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
+            event_type="artifacts_placeholder_listed",
+            message=(
+                "Placeholder artifacts listed and task status updated. "
+                "No real files were generated."
+            ),
+        )
+    elif task.status == TaskStatus.RUN_PLACEHOLDER_READY and not _minimal_artifacts_exist(task_id):
+        _update_registry_status_or_404(
+            task_id=task_id,
+            status=TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
+            event_type="artifacts_placeholder_listed",
+            message=(
+                "Placeholder artifacts listed and task status updated. "
+                "No real files were generated."
+            ),
+        )
+    elif task.status not in (
+        TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
+        TaskStatus.RUN_PLACEHOLDER_READY,
+    ):
+        _update_registry_status_or_404(
+            task_id=task_id,
+            status=TaskStatus.ARTIFACTS_PLACEHOLDER_READY,
+            event_type="artifacts_placeholder_listed",
+            message=(
+                "Placeholder artifacts listed and task status updated. "
+                "No real files were generated."
+            ),
+        )
 
     return TaskArtifactsResponse(
         task_id=task_id,

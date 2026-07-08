@@ -422,3 +422,15 @@ only after this dry-run boundary remains covered by tests.
   and execution adapter contracts are tested.
 - Any production execution path must be designed separately with controlled
   runner, worker, and persistence boundaries.
+
+## Phase 4.1 Handoff Note
+
+Phase 3 foundation work is complete: the task registry, lifecycle transitions,
+safe input path validation, task-scoped output path contract, execution adapter
+boundary, and dry-run execution records are in place.
+
+Phase 4.1 starts minimal real Bulk RNA-seq execution. The new path reads
+metadata and count matrix files, computes basic QC metrics, writes CPM-normalized
+counts, and produces a clearly labeled preliminary log2 fold-change ranking
+without running DESeq2, edgeR, limma, enrichment analysis, workflow engines,
+external command-line tools, Coze calls, or database persistence.
