@@ -48,6 +48,9 @@ safe, task-scoped artifact downloads; see
 Phase 5.3 adds `GET /task/{task_id}/coze-summary` for safe structured
 task-result summaries intended for Coze and front-end consumption.
 
+Phase 5.4 adds `POST /task/{task_id}/inputs/register` for safe task-scoped
+metadata/count-matrix input registration under `BIOINFO_INPUT_ROOT`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

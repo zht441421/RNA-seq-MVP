@@ -168,6 +168,33 @@ def list_task_artifacts(task_id: str) -> list[dict[str, Any]]:
     return get_task_store().list_artifact_metadata(task_id)
 
 
+def save_task_input(
+    task_id: str,
+    *,
+    input_role: str,
+    safe_relative_path: str,
+    original_filename: str | None = None,
+    content_type: str | None = None,
+    file_size_bytes: int | None = None,
+    checksum_sha256: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    get_task_store().save_task_input_metadata(
+        task_id=task_id,
+        input_role=input_role,
+        safe_relative_path=safe_relative_path,
+        original_filename=original_filename,
+        content_type=content_type,
+        file_size_bytes=file_size_bytes,
+        checksum_sha256=checksum_sha256,
+        metadata=metadata,
+    )
+
+
+def list_task_inputs(task_id: str) -> list[dict[str, Any]]:
+    return get_task_store().list_task_input_metadata(task_id)
+
+
 def reset_in_memory_registry() -> None:
     global _NEXT_TASK_NUMBER
 

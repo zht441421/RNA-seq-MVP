@@ -40,6 +40,7 @@ The response includes:
 - `summary_message`
 - `result_files`
 - `download_links`
+- `registered_inputs`
 - `threshold_summary`
 - `top_genes_by_padj`
 - `top_genes_by_abs_log2fc`
@@ -119,6 +120,22 @@ Each `result_files` entry includes:
 
 The summary never includes local absolute paths such as `D:\...`, `C:\...`,
 `/home/...`, `/mnt/...`, or `file://...`.
+
+## Registered Inputs
+
+When task inputs have been registered through Phase 5.4, the summary may include
+safe relative input paths:
+
+```json
+{
+  "registered_inputs": {
+    "metadata": "deseq2_minimal/metadata.csv",
+    "count_matrix": "deseq2_minimal/counts.csv"
+  }
+}
+```
+
+This section never includes local absolute paths or file contents.
 
 ## Partial Summary Behavior
 

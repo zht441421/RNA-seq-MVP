@@ -200,6 +200,22 @@ class TaskValidateInputsResponse(BaseModel):
     limitations: List[str] = Field(default_factory=list)
 
 
+class TaskInputRegisterRequest(BaseModel):
+    input_role: str
+    source_relative_path: str
+
+
+class TaskInputRegistrationResponse(BaseModel):
+    task_id: str
+    input_role: str
+    safe_relative_path: str
+    registered: bool = True
+    warnings: List[str] = Field(default_factory=list)
+    next_required_inputs: List[str] = Field(default_factory=list)
+    file_size_bytes: Optional[int] = None
+    checksum_sha256: Optional[str] = None
+
+
 class FormalDEPreflightChecks(BaseModel):
     r_available: bool
     rscript_available: bool

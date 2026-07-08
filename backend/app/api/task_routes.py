@@ -19,6 +19,8 @@ from backend.app.models.task import (
     TaskAuditResponse,
     TaskCreateRequest,
     TaskInputFileValidationResponse,
+    TaskInputRegisterRequest,
+    TaskInputRegistrationResponse,
     TaskRecord,
     TaskReportResponse,
     TaskResponse,
@@ -64,6 +66,11 @@ from backend.app.services.input_validation import (
     InputFileValidationResult,
     get_input_root,
     validate_rnaseq_input_files,
+)
+from backend.app.services.task_inputs import (
+    TaskInputRegistrationError,
+    registered_input_paths_for_run,
+    register_task_input,
 )
 from backend.app.services.task_service import (
     append_lifecycle_event,
@@ -280,6 +287,44 @@ def _append_minimal_validation_failed_event(
     )
 
 
+def _copy_run_request_with_inputs(
+    request: TaskRunRequest,
+    *,
+    metadata_file: str,
+    count_matrix_file: str,
+) -> TaskRunRequest:
+    updates = {
+        "metadata_file": metadata_file,
+        "count_matrix_file": count_matrix_file,
+    }
+    if hasattr(request, "model_copy"):
+        return request.model_copy(update=updates)
+    return request.copy(update=updates)
+
+
+def _apply_registered_inputs_to_run_request(request: TaskRunRequest) -> TaskRunRequest:
+    if request.metadata_file or request.count_matrix_file:
+        return request
+
+    registered_metadata, registered_count_matrix = registered_input_paths_for_run(
+        request.task_id
+    )
+    if not registered_metadata and not registered_count_matrix:
+        return request
+
+    if not registered_metadata or not registered_count_matrix:
+        raise HTTPException(
+            status_code=400,
+            detail="Both metadata and count matrix inputs are required.",
+        )
+
+    return _copy_run_request_with_inputs(
+        request,
+        metadata_file=registered_metadata,
+        count_matrix_file=registered_count_matrix,
+    )
+
+
 @router.post("/create", response_model=TaskResponse)
 def create_task_endpoint(request: TaskCreateRequest | None = None) -> TaskResponse:
     task = create_task(request or TaskCreateRequest())
@@ -331,6 +376,22 @@ def get_task_coze_summary(task_id: str) -> dict:
         return build_coze_task_summary(task_id)
     except CozeSummaryError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+
+
+@router.post("/{task_id}/inputs/register", response_model=TaskInputRegistrationResponse)
+def register_task_input_endpoint(
+    task_id: str,
+    request: TaskInputRegisterRequest,
+) -> TaskInputRegistrationResponse:
+    try:
+        payload = register_task_input(
+            task_id=task_id,
+            input_role=request.input_role,
+            source_relative_path=request.source_relative_path,
+        )
+    except TaskInputRegistrationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
+    return TaskInputRegistrationResponse(**payload)
 
 
 @router.post("/plan", response_model=AnalysisPlanResponse, response_model_exclude_none=True)
@@ -455,11 +516,11 @@ def create_qc_plan(request: QCRequest) -> QCResponse:
 
 @router.post("/run", response_model=TaskRunResponse)
 def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
+    task = _get_registry_task_or_404(request.task_id)
+    request = _apply_registered_inputs_to_run_request(request)
     _validate_run_mode_request(request)
     is_deseq2_run = _is_deseq2_run_request(request)
     is_minimal_real_run = _is_minimal_real_run_request(request) and not is_deseq2_run
-
-    task = _get_registry_task_or_404(request.task_id)
 
     if is_deseq2_run:
         _ensure_can_mark_run_ready(task)

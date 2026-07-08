@@ -67,6 +67,24 @@ class TaskStore:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS task_inputs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id TEXT NOT NULL,
+                    input_role TEXT NOT NULL,
+                    safe_relative_path TEXT NOT NULL,
+                    original_filename TEXT NULL,
+                    content_type TEXT NULL,
+                    file_size_bytes INTEGER NULL,
+                    checksum_sha256 TEXT NULL,
+                    registered_at TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+                    UNIQUE(task_id, input_role)
+                )
+                """
+            )
             connection.commit()
 
     def save_task(
@@ -361,6 +379,95 @@ class TaskStore:
             for row in rows
         ]
 
+    def save_task_input_metadata(
+        self,
+        *,
+        task_id: str,
+        input_role: str,
+        safe_relative_path: str,
+        original_filename: str | None = None,
+        content_type: str | None = None,
+        file_size_bytes: int | None = None,
+        checksum_sha256: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        registered_at: str | None = None,
+    ) -> None:
+        safe_task_id = _validate_task_id(task_id)
+        safe_role = _validate_input_role(input_role)
+        safe_path = _validate_safe_relative_path(safe_relative_path)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO task_inputs (
+                    task_id,
+                    input_role,
+                    safe_relative_path,
+                    original_filename,
+                    content_type,
+                    file_size_bytes,
+                    checksum_sha256,
+                    registered_at,
+                    metadata_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(task_id, input_role) DO UPDATE SET
+                    safe_relative_path = excluded.safe_relative_path,
+                    original_filename = excluded.original_filename,
+                    content_type = excluded.content_type,
+                    file_size_bytes = excluded.file_size_bytes,
+                    checksum_sha256 = excluded.checksum_sha256,
+                    registered_at = excluded.registered_at,
+                    metadata_json = excluded.metadata_json
+                """,
+                (
+                    safe_task_id,
+                    safe_role,
+                    safe_path,
+                    _safe_optional_text(original_filename),
+                    _safe_optional_text(content_type),
+                    file_size_bytes,
+                    _safe_optional_text(checksum_sha256),
+                    registered_at or _created_at_for_artifact(safe_task_id),
+                    _to_json(_safe_json_object(metadata or {})),
+                ),
+            )
+            connection.commit()
+
+    def list_task_input_metadata(self, task_id: str) -> list[dict[str, Any]]:
+        safe_task_id = _validate_task_id(task_id)
+        with self._connect() as connection:
+            connection.row_factory = sqlite3.Row
+            rows = connection.execute(
+                """
+                SELECT
+                    input_role,
+                    safe_relative_path,
+                    original_filename,
+                    content_type,
+                    file_size_bytes,
+                    checksum_sha256,
+                    registered_at,
+                    metadata_json
+                FROM task_inputs
+                WHERE task_id = ?
+                ORDER BY input_role ASC
+                """,
+                (safe_task_id,),
+            ).fetchall()
+        return [
+            {
+                "input_role": row["input_role"],
+                "safe_relative_path": row["safe_relative_path"],
+                "original_filename": row["original_filename"],
+                "content_type": row["content_type"],
+                "file_size_bytes": row["file_size_bytes"],
+                "checksum_sha256": row["checksum_sha256"],
+                "registered_at": row["registered_at"],
+                "metadata": _safe_json_object(_from_json(row["metadata_json"])),
+            }
+            for row in rows
+        ]
+
     def next_task_number(self) -> int:
         with self._connect() as connection:
             rows = connection.execute("SELECT task_id FROM tasks").fetchall()
@@ -373,6 +480,7 @@ class TaskStore:
 
     def clear(self) -> None:
         with self._connect() as connection:
+            connection.execute("DELETE FROM task_inputs")
             connection.execute("DELETE FROM task_artifacts")
             connection.execute("DELETE FROM task_events")
             connection.execute("DELETE FROM tasks")
@@ -402,6 +510,13 @@ def _validate_task_id(task_id: str) -> str:
         return validate_task_id_for_path(task_id)
     except ValueError as exc:
         raise ValueError("Invalid task_id for task store.") from exc
+
+
+def _validate_input_role(input_role: str) -> str:
+    role = _safe_required_text(input_role, "input_role")
+    if role not in {"metadata", "count_matrix"}:
+        raise ValueError("Invalid task input role.")
+    return role
 
 
 def _validate_safe_relative_path(path_value: str) -> str:

@@ -11,6 +11,7 @@ EXPECTED_PATH_METHODS = {
     "/task/validate-inputs": "post",
     "/task/formal-de/preflight": "get",
     "/task/{task_id}/coze-summary": "get",
+    "/task/{task_id}/inputs/register": "post",
     "/task/{task_id}/status": "get",
     "/task/plan": "post",
     "/task/qc": "post",

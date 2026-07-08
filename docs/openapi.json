@@ -159,6 +159,58 @@
         }
       }
     },
+    "/task/{task_id}/inputs/register": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Register Task Input Endpoint",
+        "operationId": "register_task_input_endpoint_task__task_id__inputs_register_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInputRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskInputRegistrationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/plan": {
       "post": {
         "tags": [
@@ -1172,6 +1224,88 @@
           "valid"
         ],
         "title": "TaskInputFileValidationResponse"
+      },
+      "TaskInputRegisterRequest": {
+        "properties": {
+          "input_role": {
+            "type": "string",
+            "title": "Input Role"
+          },
+          "source_relative_path": {
+            "type": "string",
+            "title": "Source Relative Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "input_role",
+          "source_relative_path"
+        ],
+        "title": "TaskInputRegisterRequest"
+      },
+      "TaskInputRegistrationResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "input_role": {
+            "type": "string",
+            "title": "Input Role"
+          },
+          "safe_relative_path": {
+            "type": "string",
+            "title": "Safe Relative Path"
+          },
+          "registered": {
+            "type": "boolean",
+            "title": "Registered",
+            "default": true
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "next_required_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Next Required Inputs"
+          },
+          "file_size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size Bytes"
+          },
+          "checksum_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checksum Sha256"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "input_role",
+          "safe_relative_path"
+        ],
+        "title": "TaskInputRegistrationResponse"
       },
       "TaskReportResponse": {
         "properties": {

@@ -18,6 +18,7 @@ from backend.app.services.artifact_paths import (
     list_placeholder_artifact_specs,
 )
 from backend.app.services.task_service import get_task, list_task_artifacts
+from backend.app.services.task_inputs import safe_registered_inputs_summary
 
 
 DESEQ2_INTERPRETATION_ARTIFACT = "deseq2_interpretation_summary.json"
@@ -89,6 +90,7 @@ def build_coze_task_summary(task_id: str) -> dict:
             extra_warnings=warnings,
         )
 
+    payload["registered_inputs"] = safe_registered_inputs_summary(task.task_id)
     return sanitize_summary_payload(payload)
 
 
