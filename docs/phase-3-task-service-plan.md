@@ -179,6 +179,54 @@ audit endpoint is also process-local and in-memory only. There is no durable
 audit log, no database persistence, no real execution log reading, and no real
 file generation.
 
+## Phase 3.4 Input File Contract and Safe Path Validation Foundation
+
+Phase 3.4 adds an internal input validation service for future RNA-seq
+execution phases. The service lives in
+`backend/app/services/input_validation.py` and defines the first safe file path
+contract for metadata and count matrix inputs.
+
+The input root is:
+
+- `BIOINFO_INPUT_ROOT`, when the environment variable is set.
+- `data/inputs`, relative to the project root, when the environment variable is
+  not set.
+
+The validation layer accepts relative paths only. It rejects:
+
+- Empty paths.
+- Paths containing null bytes.
+- Absolute Windows paths such as `C:\...` or `D:\...`.
+- Absolute Unix paths such as `/home/...` or `/mnt/...`.
+- Path traversal such as `../` or `..\`.
+- Resolved paths that escape the configured input root.
+- Unsupported suffixes.
+
+The allowed suffixes for the current RNA-seq placeholder contract are:
+
+- `.csv`
+- `.tsv`
+- `.txt`
+
+For Phase 3.4, validation checks path safety, suffixes, and file existence only.
+It does not parse full file contents, validate biological schemas, read large
+files, run QC, run DESeq2, edgeR, limma, FastQC, MultiQC, enrichment analysis,
+Snakemake, Nextflow, or create report/artifact files.
+
+Phase 3.4 also adds a minimal public endpoint:
+
+- `POST /task/validate-inputs`
+
+The endpoint validates `metadata_file` and `count_matrix_file` against the safe
+input root. It returns `input_validation_completed`, a combined `valid` flag,
+per-file suffix/existence/validity/errors, aggregate errors, and explicit
+limitations. Public responses intentionally expose only safe input-root-relative
+paths and do not expose local absolute filesystem paths.
+
+This endpoint does not mutate the in-memory task registry and does not advance
+the placeholder lifecycle. It is a deterministic preflight contract for future
+execution work only.
+
 ## Known Limitations
 
 - No real RNA-seq execution is implemented.
@@ -190,10 +238,11 @@ file generation.
 - No durable audit log is implemented.
 - No real Coze service is called.
 - No Snakemake workflow is run.
+- Input validation checks path safety, allowed suffixes, and existence only; it
+  does not parse file contents or validate RNA-seq schemas yet.
 
 ## Next Recommended Phases
 
-- Define the input file validation contract before reading any real files.
 - Define the output artifact directory contract before creating artifacts.
 - Introduce an execution adapter interface with mock and dry-run backends first.
 - Only later integrate real RNA-seq tools after state, validation, artifact,

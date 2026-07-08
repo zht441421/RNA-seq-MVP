@@ -15,6 +15,7 @@ from backend.app.models.task import (
     TaskArtifactsResponse,
     TaskAuditResponse,
     TaskCreateRequest,
+    TaskInputFileValidationResponse,
     TaskRecord,
     TaskReportResponse,
     TaskResponse,
@@ -22,6 +23,13 @@ from backend.app.models.task import (
     TaskRunResponse,
     TaskRunStep,
     TaskStatus,
+    TaskValidateInputsRequest,
+    TaskValidateInputsResponse,
+)
+from backend.app.services.input_validation import (
+    InputFileValidationResult,
+    get_input_root,
+    validate_rnaseq_input_files,
 )
 from backend.app.services.task_service import create_task, get_task, update_task_status
 
@@ -62,10 +70,49 @@ def _audit_timestamp(task: TaskRecord, event_index: int) -> str:
     return timestamp.isoformat().replace("+00:00", "Z")
 
 
+def _safe_relative_path(result: InputFileValidationResult) -> str | None:
+    if result.resolved_path is None:
+        return None
+
+    try:
+        return result.resolved_path.relative_to(get_input_root()).as_posix()
+    except ValueError:
+        return None
+
+
+def _input_file_response(
+    result: InputFileValidationResult,
+) -> TaskInputFileValidationResponse:
+    return TaskInputFileValidationResponse(
+        safe_relative_path=_safe_relative_path(result),
+        exists=result.exists,
+        suffix=result.suffix,
+        valid=result.valid,
+        errors=result.errors,
+    )
+
+
 @router.post("/create", response_model=TaskResponse)
 def create_task_endpoint(request: TaskCreateRequest | None = None) -> TaskResponse:
     task = create_task(request or TaskCreateRequest())
     return TaskResponse(task_id=task.task_id, status=task.status, message=task.message)
+
+
+@router.post("/validate-inputs", response_model=TaskValidateInputsResponse)
+def validate_task_inputs(request: TaskValidateInputsRequest) -> TaskValidateInputsResponse:
+    validation = validate_rnaseq_input_files(
+        metadata_file=request.metadata_file,
+        count_matrix_file=request.count_matrix_file,
+    )
+
+    return TaskValidateInputsResponse(
+        status="input_validation_completed",
+        valid=validation.valid,
+        metadata=_input_file_response(validation.metadata),
+        count_matrix=_input_file_response(validation.count_matrix),
+        errors=validation.errors,
+        limitations=validation.limitations,
+    )
 
 
 @router.post("/plan", response_model=AnalysisPlanResponse, response_model_exclude_none=True)

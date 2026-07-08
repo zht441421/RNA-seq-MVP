@@ -8,6 +8,7 @@ from backend.app.main import app
 EXPECTED_PATH_METHODS = {
     "/health": "get",
     "/task/create": "post",
+    "/task/validate-inputs": "post",
     "/task/{task_id}/status": "get",
     "/task/plan": "post",
     "/task/qc": "post",

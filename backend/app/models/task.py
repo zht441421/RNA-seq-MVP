@@ -171,3 +171,25 @@ class TaskAuditResponse(BaseModel):
     status: str = "audit_placeholder_ready"
     events: List[AuditEvent]
     limitations: List[str] = Field(default_factory=list)
+
+
+class TaskValidateInputsRequest(BaseModel):
+    metadata_file: str
+    count_matrix_file: str
+
+
+class TaskInputFileValidationResponse(BaseModel):
+    safe_relative_path: Optional[str] = None
+    exists: bool
+    suffix: str
+    valid: bool
+    errors: List[str] = Field(default_factory=list)
+
+
+class TaskValidateInputsResponse(BaseModel):
+    status: str = "input_validation_completed"
+    valid: bool
+    metadata: TaskInputFileValidationResponse
+    count_matrix: TaskInputFileValidationResponse
+    errors: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)

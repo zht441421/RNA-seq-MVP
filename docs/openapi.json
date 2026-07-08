@@ -53,6 +53,47 @@
         }
       }
     },
+    "/task/validate-inputs": {
+      "post": {
+        "tags": [
+          "task"
+        ],
+        "summary": "Validate Task Inputs",
+        "operationId": "validate_task_inputs_task_validate_inputs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskValidateInputsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskValidateInputsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/task/plan": {
       "post": {
         "tags": [
@@ -867,6 +908,47 @@
         "type": "object",
         "title": "TaskCreateRequest"
       },
+      "TaskInputFileValidationResponse": {
+        "properties": {
+          "safe_relative_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Relative Path"
+          },
+          "exists": {
+            "type": "boolean",
+            "title": "Exists"
+          },
+          "suffix": {
+            "type": "string",
+            "title": "Suffix"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exists",
+          "suffix",
+          "valid"
+        ],
+        "title": "TaskInputFileValidationResponse"
+      },
       "TaskReportResponse": {
         "properties": {
           "task_id": {
@@ -1078,6 +1160,64 @@
           "audit_placeholder_ready"
         ],
         "title": "TaskStatus"
+      },
+      "TaskValidateInputsRequest": {
+        "properties": {
+          "metadata_file": {
+            "type": "string",
+            "title": "Metadata File"
+          },
+          "count_matrix_file": {
+            "type": "string",
+            "title": "Count Matrix File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metadata_file",
+          "count_matrix_file"
+        ],
+        "title": "TaskValidateInputsRequest"
+      },
+      "TaskValidateInputsResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "input_validation_completed"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/TaskInputFileValidationResponse"
+          },
+          "count_matrix": {
+            "$ref": "#/components/schemas/TaskInputFileValidationResponse"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valid",
+          "metadata",
+          "count_matrix"
+        ],
+        "title": "TaskValidateInputsResponse"
       },
       "ValidationError": {
         "properties": {
