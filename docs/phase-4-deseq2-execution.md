@@ -8,6 +8,10 @@ Phase 4.8 adds a deterministic interpretation summary for DESeq2 outputs. It
 does not change the DESeq2 statistical execution, design formula, or runtime
 gate.
 
+Phase 4.9 adds dedicated synthetic DESeq2 demo data and a skip-safe end-to-end
+validation script. The demo runs only when the Phase 4.6 preflight is ready and
+skips safely when the local R/DESeq2 environment is unavailable.
+
 ## Purpose
 
 This phase connects `POST /task/run` to a safe Rscript + DESeq2 execution path
@@ -190,6 +194,22 @@ DESeq2 execution is not available because the preflight check is not ready.
 
 No DESeq2 analysis Rscript is run, no fake DESeq2 output is generated, and the
 task is not marked as completed.
+
+## Phase 4.9 Demo Validation
+
+Phase 4.9 includes:
+
+- demo data in `data/demo/deseq2_minimal/`
+- an end-to-end script at `scripts/run_phase_4_9_deseq2_demo.py`
+- focused tests for demo data and script behavior
+
+The script creates a task, checks `GET /task/formal-de/preflight`, and only
+runs the formal DESeq2 path when preflight is ready. If preflight is not ready,
+the script exits successfully by default with a clear skipped message. Passing
+`--require-deseq2` makes unavailable preflight a deterministic non-zero exit.
+
+The synthetic demo data is for pipeline validation only and is not for
+biological interpretation.
 
 ## What Is Not Implemented
 

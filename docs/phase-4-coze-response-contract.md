@@ -55,6 +55,10 @@ DESeq2 completed and produced formal statistical results. Candidate genes were s
 - `deseq2_run_manifest.json`
 - `report.md`
 
+When a response is based on the Phase 4.9 synthetic demo dataset, Coze-facing
+summaries should cite the result only as pipeline validation. They should state
+that the demo data is synthetic and not suitable for biological interpretation.
+
 ## Interpretation Boundary
 
 The response should include:
