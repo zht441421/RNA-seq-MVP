@@ -45,6 +45,7 @@ from backend.app.services.coze_summary import (
     CozeSummaryError,
     build_coze_task_summary,
 )
+from backend.app.services.contrast_validation import ContrastValidationError
 from backend.app.services.deseq2_execution import (
     DESEQ2_ANALYSIS_METHOD,
     Deseq2ExecutionError,
@@ -531,9 +532,14 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 count_matrix_file=request.count_matrix_file or "",
                 project_name=request.project_name,
                 omics_type=request.omics_type,
+                contrast_column=request.contrast_column,
+                contrast_numerator=request.contrast_numerator,
+                contrast_denominator=request.contrast_denominator,
             )
         except MinimalRNASeqValidationError as exc:
             raise HTTPException(status_code=422, detail=exc.to_detail()) from exc
+        except ContrastValidationError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
         except Deseq2ExecutionError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
 
@@ -589,10 +595,15 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 registry_record=task,
                 project_name=request.project_name,
                 omics_type=request.omics_type,
+                contrast_column=request.contrast_column,
+                contrast_numerator=request.contrast_numerator,
+                contrast_denominator=request.contrast_denominator,
             )
         except MinimalRNASeqValidationError as exc:
             _append_minimal_validation_failed_event(request.task_id, exc)
             raise HTTPException(status_code=422, detail=exc.to_detail()) from exc
+        except ContrastValidationError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
         except ValueError as exc:
             raise HTTPException(
                 status_code=400,

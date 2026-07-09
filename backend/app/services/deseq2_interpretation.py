@@ -2,6 +2,8 @@ import csv
 import math
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from backend.app.services.contrast_validation import contrast_payload_from_mapping
+
 
 ANALYSIS_METHOD = "deseq2"
 DEFAULT_PADJ_THRESHOLD = 0.05
@@ -38,6 +40,7 @@ def summarize_deseq2_results(
     results_csv_path: Path,
     padj_threshold: float = DEFAULT_PADJ_THRESHOLD,
     abs_log2fc_threshold: float = DEFAULT_ABS_LOG2FC_THRESHOLD,
+    contrast: dict | None = None,
 ) -> dict:
     safe_padj_threshold = _safe_threshold(padj_threshold, DEFAULT_PADJ_THRESHOLD)
     safe_abs_log2fc_threshold = _safe_threshold(
@@ -49,6 +52,7 @@ def summarize_deseq2_results(
         classify_deseq2_gene(row, safe_padj_threshold, safe_abs_log2fc_threshold)
         for row in rows
     ]
+    contrast_payload = contrast_payload_from_mapping(contrast)
 
     genes_with_valid_padj = [
         row for row in classified_rows if row["padj"] is not None
@@ -66,7 +70,7 @@ def summarize_deseq2_results(
         row for row in classified_rows if row["passes_default_reporting_filter"]
     ]
 
-    return {
+    summary = {
         "analysis_method": ANALYSIS_METHOD,
         "formal_de_method": ANALYSIS_METHOD,
         "statistical_test_performed": True,
@@ -89,11 +93,23 @@ def summarize_deseq2_results(
         ),
         "top_genes_by_padj": _top_genes_by_padj(classified_rows),
         "top_genes_by_abs_log2fc": _top_genes_by_abs_log2fc(classified_rows),
-        "interpretation_warnings": _interpretation_warnings(classified_rows),
+        "interpretation_warnings": _interpretation_warnings(
+            classified_rows,
+            contrast_payload,
+        ),
         "interpretation_limitations": _interpretation_limitations(),
-        "safe_human_readable_notes": _safe_human_readable_notes(),
+        "safe_human_readable_notes": _safe_human_readable_notes(contrast_payload),
         "interpretation_boundary": INTERPRETATION_BOUNDARY,
     }
+    if contrast_payload is not None:
+        summary["contrast"] = contrast_payload
+        summary["positive_log2fc_interpretation"] = contrast_payload[
+            "positive_log2fc_interpretation"
+        ]
+        summary["negative_log2fc_interpretation"] = contrast_payload[
+            "negative_log2fc_interpretation"
+        ]
+    return summary
 
 
 def classify_deseq2_gene(
@@ -125,8 +141,15 @@ def classify_deseq2_gene(
     }
 
 
-def build_deseq2_interpretation_contract(summary: dict) -> dict:
-    return {
+def build_deseq2_interpretation_contract(
+    summary: dict,
+    contrast: dict | None = None,
+) -> dict:
+    contrast_payload = (
+        contrast_payload_from_mapping(contrast)
+        or contrast_payload_from_mapping(summary.get("contrast"))
+    )
+    contract = {
         "analysis_method": ANALYSIS_METHOD,
         "formal_de_method": ANALYSIS_METHOD,
         "status": "deseq2_interpretation_summary_ready",
@@ -148,6 +171,15 @@ def build_deseq2_interpretation_contract(summary: dict) -> dict:
             "Use biological context and independent validation before making conclusions.",
         ],
     }
+    if contrast_payload is not None:
+        contract["contrast"] = contrast_payload
+        contract["positive_log2fc_interpretation"] = contrast_payload[
+            "positive_log2fc_interpretation"
+        ]
+        contract["negative_log2fc_interpretation"] = contrast_payload[
+            "negative_log2fc_interpretation"
+        ]
+    return contract
 
 
 def _top_genes_by_padj(rows: list[dict]) -> list[dict]:
@@ -181,11 +213,27 @@ def _public_gene_entry(row: dict) -> dict:
     }
 
 
-def _interpretation_warnings(rows: list[dict]) -> list[str]:
-    warnings = [
-        "log2FoldChange direction depends on DESeq2 contrast/reference level; this summary reports positive and negative log2FoldChange only.",
-        INTERPRETATION_BOUNDARY,
-    ]
+def _interpretation_warnings(
+    rows: list[dict],
+    contrast: dict | None = None,
+) -> list[str]:
+    if contrast is None:
+        warnings = [
+            "log2FoldChange direction depends on DESeq2 contrast/reference level; this summary reports positive and negative log2FoldChange only.",
+            INTERPRETATION_BOUNDARY,
+        ]
+    else:
+        warnings = [
+            (
+                "Positive log2FoldChange means "
+                f"{contrast['positive_log2fc_interpretation'].lower()}."
+            ),
+            (
+                "Negative log2FoldChange means "
+                f"{contrast['negative_log2fc_interpretation'].lower()}."
+            ),
+            INTERPRETATION_BOUNDARY,
+        ]
     if any(row["padj"] is None for row in rows):
         warnings.append(
             "NA pvalue or padj can occur due to filtering, low counts, outlier handling, or model limitations."
@@ -204,10 +252,22 @@ def _interpretation_limitations() -> list[str]:
     ]
 
 
-def _safe_human_readable_notes() -> list[str]:
+def _safe_human_readable_notes(contrast: dict | None = None) -> list[str]:
+    if contrast is None:
+        direction_note = (
+            "Positive log2FoldChange and negative log2FoldChange are reported "
+            "without asserting treatment/control direction."
+        )
+    else:
+        direction_note = (
+            "Positive log2FoldChange means "
+            f"{contrast['positive_log2fc_interpretation'].lower()}; "
+            "negative log2FoldChange means "
+            f"{contrast['negative_log2fc_interpretation'].lower()}."
+        )
     return [
         "Genes passing both thresholds are reporting candidates, not final biological conclusions.",
-        "Positive log2FoldChange and negative log2FoldChange are reported without asserting treatment/control direction.",
+        direction_note,
         "Missing pvalue or padj values are preserved in the counts and excluded from adjusted-p-value ranking.",
     ]
 

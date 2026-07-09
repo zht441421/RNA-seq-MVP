@@ -11,6 +11,7 @@ from backend.app.services.artifact_paths import (
     list_deseq2_artifact_specs,
     resolve_task_artifact_path,
 )
+from backend.app.services.contrast_validation import resolve_contrast
 from backend.app.services.formal_de_preflight import CommandResult, run_command_safely
 from backend.app.services.input_validation import validate_rnaseq_input_files
 from backend.app.services.deseq2_interpretation import (
@@ -114,12 +115,11 @@ def execute_task_deseq2(
     count_matrix_file: str,
     project_name: str = "unspecified",
     omics_type: str = "unspecified",
+    contrast_column: str | None = None,
+    contrast_numerator: str | None = None,
+    contrast_denominator: str | None = None,
     preflight: dict | None = None,
 ) -> Deseq2ExecutionResult:
-    preflight_result = preflight or formal_de_preflight.run_deseq2_preflight()
-    if not preflight_result.get("ready"):
-        raise Deseq2PreflightNotReadyError(preflight_result)
-
     metadata, counts, warnings, metadata_path, count_matrix_path = _load_and_validate_inputs(
         metadata_file=metadata_file,
         count_matrix_file=count_matrix_file,
@@ -128,6 +128,18 @@ def execute_task_deseq2(
         counts = reorder_counts_to_metadata(metadata, counts)
     except ValueError as exc:
         raise build_validation_error([str(exc)], warnings) from exc
+
+    contrast = resolve_contrast(
+        metadata,
+        contrast_column=contrast_column,
+        contrast_numerator=contrast_numerator,
+        contrast_denominator=contrast_denominator,
+    )
+    contrast_payload = contrast.as_dict()
+
+    preflight_result = preflight or formal_de_preflight.run_deseq2_preflight()
+    if not preflight_result.get("ready"):
+        raise Deseq2PreflightNotReadyError(preflight_result)
 
     output_dir = ensure_task_output_dir(task_id)
     output_dir_relative = output_dir.relative_to(get_output_root()).as_posix()
@@ -148,6 +160,9 @@ def execute_task_deseq2(
         str(script_path),
         str(metadata_path),
         str(count_matrix_path),
+        contrast.contrast_column,
+        contrast.contrast_numerator,
+        contrast.contrast_denominator,
         str(results_path),
     ]
     command_result = run_command_safely(command, timeout_seconds=_DESEQ2_TIMEOUT_SECONDS)
@@ -162,9 +177,13 @@ def execute_task_deseq2(
             errors=["DESeq2 execution did not produce deseq2_results.csv."],
         )
 
-    interpretation_summary = summarize_deseq2_results(results_path)
+    interpretation_summary = summarize_deseq2_results(
+        results_path,
+        contrast=contrast_payload,
+    )
     interpretation_contract = build_deseq2_interpretation_contract(
-        interpretation_summary
+        interpretation_summary,
+        contrast=contrast_payload,
     )
     result_gene_count = int(interpretation_summary["total_genes_tested"])
     limitations = _deseq2_limitations()
@@ -179,6 +198,7 @@ def execute_task_deseq2(
         counts=counts,
         result_gene_count=result_gene_count,
         interpretation_summary=interpretation_summary,
+        contrast=contrast_payload,
         warnings=warnings,
         limitations=limitations,
     )
@@ -190,6 +210,7 @@ def execute_task_deseq2(
         count_matrix_file=count_matrix_file,
         output_dir_relative=output_dir_relative,
         output_files=output_files,
+        contrast=contrast_payload,
         limitations=limitations,
     )
 
@@ -203,6 +224,7 @@ def execute_task_deseq2(
         gene_count=len(counts.gene_ids),
         result_gene_count=result_gene_count,
         interpretation_summary=interpretation_summary,
+        contrast=contrast_payload,
         output_files=output_files,
         warnings=warnings,
         limitations=limitations,
@@ -219,7 +241,10 @@ def execute_task_deseq2(
             "DESeq2 formal differential expression executor invoked.",
             f"Prepared task output directory: {output_dir_relative}.",
             "Validated metadata and count matrix inputs.",
-            "Ran DESeq2 through Rscript with a task-local R script.",
+            (
+                "Ran DESeq2 through Rscript with explicit contrast "
+                f"{contrast_payload['direction']}."
+            ),
         ],
         warnings=warnings,
         limitations=limitations,
@@ -286,6 +311,7 @@ def _deseq2_summary(
     counts: CountMatrix,
     result_gene_count: int,
     interpretation_summary: dict,
+    contrast: dict,
     warnings: list[str],
     limitations: list[str],
 ) -> dict:
@@ -304,6 +330,13 @@ def _deseq2_summary(
         "external_tool": "Rscript",
         "r_package": "DESeq2",
         "design_formula": "~ condition",
+        "contrast": contrast,
+        "positive_log2fc_interpretation": contrast[
+            "positive_log2fc_interpretation"
+        ],
+        "negative_log2fc_interpretation": contrast[
+            "negative_log2fc_interpretation"
+        ],
         "input_sample_count": len(counts.sample_ids),
         "input_gene_count": len(counts.gene_ids),
         "result_gene_count": result_gene_count,
@@ -332,6 +365,7 @@ def _deseq2_manifest(
     count_matrix_file: str,
     output_dir_relative: str,
     output_files: list[str],
+    contrast: dict,
     limitations: list[str],
 ) -> dict:
     return {
@@ -347,6 +381,13 @@ def _deseq2_manifest(
         "command_invoked_safely": True,
         "shell_used": False,
         "package_installation_attempted": False,
+        "contrast": contrast,
+        "positive_log2fc_interpretation": contrast[
+            "positive_log2fc_interpretation"
+        ],
+        "negative_log2fc_interpretation": contrast[
+            "negative_log2fc_interpretation"
+        ],
         "output_files": output_files,
         "limitations": limitations,
     }
@@ -360,6 +401,7 @@ def _write_deseq2_report(
     gene_count: int,
     result_gene_count: int,
     interpretation_summary: dict,
+    contrast: dict,
     output_files: list[str],
     warnings: list[str],
     limitations: list[str],
@@ -378,6 +420,21 @@ def _write_deseq2_report(
         "- P-values available: true",
         "- Adjusted p-values available: true",
         "- Design formula: `~ condition`",
+        (
+            "- DESeq2 contrast: "
+            f"`{contrast['contrast_column']}`, "
+            f"`{contrast['contrast_numerator']}`, "
+            f"`{contrast['contrast_denominator']}`"
+        ),
+        f"- Contrast direction: `{contrast['direction']}`",
+        (
+            "- Positive log2FoldChange: "
+            f"{contrast['positive_log2fc_interpretation']}"
+        ),
+        (
+            "- Negative log2FoldChange: "
+            f"{contrast['negative_log2fc_interpretation']}"
+        ),
         "- Result artifact: `deseq2_results.csv`",
         "",
         "## Input summary",
@@ -455,17 +512,47 @@ def _deseq2_r_script() -> str:
     return "\n".join(
         [
             "args <- commandArgs(trailingOnly = TRUE)",
-            "if (length(args) != 3) { stop('Expected metadata, counts, and output paths.') }",
+            (
+                "if (length(args) != 6) { "
+                "stop('Expected metadata, counts, contrast column, numerator, denominator, and output.') "
+                "}"
+            ),
             "metadata_path <- args[[1]]",
             "counts_path <- args[[2]]",
-            "output_path <- args[[3]]",
+            "contrast_column <- args[[3]]",
+            "contrast_numerator <- args[[4]]",
+            "contrast_denominator <- args[[5]]",
+            "output_path <- args[[6]]",
             "suppressPackageStartupMessages(library(DESeq2))",
             "metadata <- read.csv(metadata_path, stringsAsFactors = TRUE, check.names = FALSE)",
             "counts <- read.csv(counts_path, check.names = FALSE)",
             "if (!('sample_id' %in% colnames(metadata))) { stop('metadata is missing sample_id') }",
             "if (!('condition' %in% colnames(metadata))) { stop('metadata is missing condition') }",
             "if (!('gene_id' %in% colnames(counts))) { stop('counts is missing gene_id') }",
-            "if (length(unique(metadata$condition)) != 2) { stop('exactly two conditions are required') }",
+            (
+                "if (!(contrast_column %in% colnames(metadata))) { "
+                "stop('metadata is missing contrast column') "
+                "}"
+            ),
+            (
+                "contrast_values <- unique(as.character(metadata[[contrast_column]]))"
+            ),
+            "if (length(contrast_values) != 2) { stop('exactly two contrast groups are required') }",
+            (
+                "if (!(contrast_numerator %in% contrast_values)) { "
+                "stop('contrast numerator is missing from metadata') "
+                "}"
+            ),
+            (
+                "if (!(contrast_denominator %in% contrast_values)) { "
+                "stop('contrast denominator is missing from metadata') "
+                "}"
+            ),
+            (
+                "if (contrast_numerator == contrast_denominator) { "
+                "stop('contrast numerator and denominator must differ') "
+                "}"
+            ),
             "rownames(metadata) <- as.character(metadata$sample_id)",
             "rownames(counts) <- as.character(counts$gene_id)",
             "counts$gene_id <- NULL",
@@ -475,10 +562,11 @@ def _deseq2_r_script() -> str:
             "counts <- counts[, rownames(metadata), drop = FALSE]",
             "count_matrix <- as.matrix(counts)",
             "storage.mode(count_matrix) <- 'integer'",
-            "metadata$condition <- factor(metadata$condition)",
-            "dds <- DESeqDataSetFromMatrix(countData = count_matrix, colData = metadata, design = ~ condition)",
+            "metadata[[contrast_column]] <- factor(metadata[[contrast_column]])",
+            "design_formula <- as.formula(paste('~', contrast_column))",
+            "dds <- DESeqDataSetFromMatrix(countData = count_matrix, colData = metadata, design = design_formula)",
             "dds <- DESeq(dds)",
-            "res <- results(dds)",
+            "res <- results(dds, contrast = c(contrast_column, contrast_numerator, contrast_denominator))",
             "output <- data.frame(gene_id = rownames(res), as.data.frame(res), check.names = FALSE)",
             "write.csv(output, output_path, row.names = FALSE, na = '')",
         ]

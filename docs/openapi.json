@@ -1422,6 +1422,39 @@
             ],
             "title": "Contrast"
           },
+          "contrast_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast Column"
+          },
+          "contrast_numerator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast Numerator"
+          },
+          "contrast_denominator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast Denominator"
+          },
           "metadata_file": {
             "anyOf": [
               {

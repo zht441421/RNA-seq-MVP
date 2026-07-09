@@ -4,6 +4,8 @@ import math
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from backend.app.services.contrast_validation import ContrastSpec, resolve_contrast
+
 
 @dataclass(frozen=True)
 class ValidationResult:
@@ -557,14 +559,20 @@ def filter_low_expression(counts: CountMatrix, min_total_count: int = 10) -> Cou
     )
 
 
-def compute_preliminary_log2fc(counts_or_cpm: CountMatrix, metadata: list[dict]) -> list[dict]:
+def compute_preliminary_log2fc(
+    counts_or_cpm: CountMatrix,
+    metadata: list[dict],
+    contrast: ContrastSpec | None = None,
+) -> list[dict]:
+    resolved_contrast = contrast or resolve_contrast(metadata)
     condition_order = _condition_order(metadata)
     if len(condition_order) != 2:
         raise ValueError(
             "Preliminary log2 fold-change ranking requires exactly two condition groups."
         )
 
-    group_1, group_2 = condition_order
+    denominator = resolved_contrast.contrast_denominator
+    numerator = resolved_contrast.contrast_numerator
     samples_by_group = {
         group: [
             _clean_cell(row.get("sample_id"))
@@ -572,24 +580,27 @@ def compute_preliminary_log2fc(counts_or_cpm: CountMatrix, metadata: list[dict])
             if _clean_cell(row.get("condition")) == group
             and _clean_cell(row.get("sample_id")) in counts_or_cpm.sample_ids
         ]
-        for group in condition_order
+        for group in (denominator, numerator)
     }
 
-    if not samples_by_group[group_1] or not samples_by_group[group_2]:
+    if not samples_by_group[denominator] or not samples_by_group[numerator]:
         raise ValueError("Each condition group must have at least one aligned sample.")
 
     rows: list[dict] = []
+    contrast_payload = resolved_contrast.as_dict()
     note = (
-        "Preliminary ranking only; group_1="
-        f"{group_1}; group_2={group_2}; "
-        "log2 fold change uses group mean CPM with a +1 CPM pseudocount; "
+        "Preliminary ranking only; contrast="
+        f"{contrast_payload['direction']}; "
+        "group_1 is the denominator and group_2 is the numerator; "
+        "log2 fold change uses log2(mean CPM numerator + 1) - "
+        "log2(mean CPM denominator + 1); "
         "no formal differential expression statistical test was performed."
     )
     for gene_id in counts_or_cpm.gene_ids:
         row = counts_or_cpm.values[gene_id]
-        mean_group_1 = _mean(row[sample_id] for sample_id in samples_by_group[group_1])
-        mean_group_2 = _mean(row[sample_id] for sample_id in samples_by_group[group_2])
-        log2_fold_change = math.log2((mean_group_2 + 1.0) / (mean_group_1 + 1.0))
+        mean_group_1 = _mean(row[sample_id] for sample_id in samples_by_group[denominator])
+        mean_group_2 = _mean(row[sample_id] for sample_id in samples_by_group[numerator])
+        log2_fold_change = math.log2(mean_group_2 + 1.0) - math.log2(mean_group_1 + 1.0)
         rows.append(
             {
                 "gene_id": gene_id,
@@ -601,6 +612,16 @@ def compute_preliminary_log2fc(counts_or_cpm: CountMatrix, metadata: list[dict])
                 "formal_statistical_test": False,
                 "pvalue_available": False,
                 "adjusted_pvalue_available": False,
+                "contrast_column": contrast_payload["contrast_column"],
+                "contrast_numerator": contrast_payload["contrast_numerator"],
+                "contrast_denominator": contrast_payload["contrast_denominator"],
+                "contrast_direction": contrast_payload["direction"],
+                "positive_log2fc_interpretation": contrast_payload[
+                    "positive_log2fc_interpretation"
+                ],
+                "negative_log2fc_interpretation": contrast_payload[
+                    "negative_log2fc_interpretation"
+                ],
                 "analysis_note": note,
             }
         )
@@ -642,6 +663,7 @@ def build_report_payload(
     min_total_count_filter: int,
     generated_files: list[dict] | None = None,
     preliminary_rows: list[dict] | None = None,
+    contrast: dict | None = None,
 ) -> dict:
     method_contract = get_minimal_method_contract()
     return {
@@ -665,6 +687,7 @@ def build_report_payload(
         "condition_counts": _normalized_condition_counts(condition_counts),
         "library_sizes": _normalized_library_sizes(library_sizes),
         "min_total_count_filter": int(min_total_count_filter),
+        "contrast": _normalized_contrast(contrast),
         "generated_artifacts": _report_generated_artifacts(generated_files or []),
         "top_preliminary_ranked_genes": summarize_top_ranked_genes(preliminary_rows or []),
         "limitations": _default_report_limitations(),
@@ -719,6 +742,7 @@ def write_markdown_report(path: Path, payload: dict) -> None:
     payload = _normalize_report_payload(payload)
     generated_artifacts = payload["generated_artifacts"]
     top_ranked_genes = payload["top_preliminary_ranked_genes"]
+    contrast = payload["contrast"]
     library_size_rows = [
         {"sample_id": sample_id, "library_size": _format_count_number(library_size)}
         for sample_id, library_size in payload["library_sizes"].items()
@@ -805,6 +829,25 @@ def write_markdown_report(path: Path, payload: dict) -> None:
         "- No p-values or adjusted p-values are reported.",
         "- Users should not label this table as a final DEG list.",
         "",
+        "## Contrast direction",
+        "",
+        f"- Contrast source: `{contrast['contrast_source']}`",
+        f"- Contrast column: `{contrast['contrast_column']}`",
+        f"- Direction: `{contrast['direction']}`",
+        (
+            "- Positive log2 fold change: "
+            f"{contrast['positive_log2fc_interpretation']}"
+        ),
+        (
+            "- Negative log2 fold change: "
+            f"{contrast['negative_log2fc_interpretation']}"
+        ),
+        (
+            "- Formula: log2(mean CPM of "
+            f"{contrast['contrast_numerator']} + 1) - log2(mean CPM of "
+            f"{contrast['contrast_denominator']} + 1)."
+        ),
+        "",
         "## Top preliminary ranked genes",
         "",
         *(
@@ -888,6 +931,7 @@ def _normalize_report_payload(payload: dict) -> dict:
         ),
         "library_sizes": _normalized_library_sizes(payload.get("library_sizes", {})),
         "min_total_count_filter": int(payload.get("min_total_count_filter", 0)),
+        "contrast": _normalized_contrast(payload.get("contrast")),
         "generated_artifacts": payload.get("generated_artifacts")
         or _report_generated_artifacts(payload.get("generated_files", [])),
         "top_preliminary_ranked_genes": payload.get("top_preliminary_ranked_genes")
@@ -939,6 +983,41 @@ def _normalized_library_sizes(library_sizes: dict) -> dict[str, float]:
     return {
         str(sample_id): _safe_float(library_size)
         for sample_id, library_size in library_sizes.items()
+    }
+
+
+def _normalized_contrast(contrast: object) -> dict:
+    if not isinstance(contrast, dict):
+        return {
+            "contrast_column": "condition",
+            "contrast_numerator": "group_2",
+            "contrast_denominator": "group_1",
+            "direction": "group_2_vs_group_1",
+            "positive_log2fc_interpretation": "Higher in group_2 relative to group_1",
+            "negative_log2fc_interpretation": "Lower in group_2 relative to group_1",
+            "contrast_source": "unspecified",
+            "inferred": False,
+        }
+
+    numerator = str(contrast.get("contrast_numerator") or "group_2")
+    denominator = str(contrast.get("contrast_denominator") or "group_1")
+    return {
+        "contrast_column": str(contrast.get("contrast_column") or "condition"),
+        "contrast_numerator": numerator,
+        "contrast_denominator": denominator,
+        "direction": str(
+            contrast.get("direction") or f"{numerator}_vs_{denominator}"
+        ),
+        "positive_log2fc_interpretation": str(
+            contrast.get("positive_log2fc_interpretation")
+            or f"Higher in {numerator} relative to {denominator}"
+        ),
+        "negative_log2fc_interpretation": str(
+            contrast.get("negative_log2fc_interpretation")
+            or f"Lower in {numerator} relative to {denominator}"
+        ),
+        "contrast_source": str(contrast.get("contrast_source") or "unspecified"),
+        "inferred": bool(contrast.get("inferred", False)),
     }
 
 

@@ -44,6 +44,9 @@ The response includes:
 - `threshold_summary`
 - `top_genes_by_padj`
 - `top_genes_by_abs_log2fc`
+- `contrast`
+- `positive_log2fc_interpretation`
+- `negative_log2fc_interpretation`
 - `warnings`
 - `limitations`
 - `interpretation_boundary`
@@ -71,6 +74,23 @@ not formal differential expression statistics. Warnings and limitations include:
 - no batch correction
 - no GO/KEGG/GSEA enrichment
 
+When `execution_summary.json` is available, the minimal summary also includes
+the resolved contrast direction. For explicit `treatment` vs `control`, the
+summary includes:
+
+```json
+{
+  "contrast": {
+    "contrast_column": "condition",
+    "contrast_numerator": "treatment",
+    "contrast_denominator": "control",
+    "direction": "treatment_vs_control"
+  },
+  "positive_log2fc_interpretation": "Higher in treatment relative to control",
+  "negative_log2fc_interpretation": "Lower in treatment relative to control"
+}
+```
+
 ## DESeq2 Workflow Behavior
 
 When `deseq2_interpretation_summary.json` is registered and readable, the
@@ -96,11 +116,16 @@ adjusted_pvalue_available: true
 The response preserves key interpretation boundaries:
 
 - statistical significance is not biological significance
-- log2FoldChange direction depends on DESeq2 contrast/reference level
+- log2FoldChange direction is reported from the recorded contrast/reference
+  level when contrast metadata is available
 - NA pvalue or padj can occur because of filtering, low counts, outlier
   handling, or model limitations
 - no GO/KEGG/GSEA enrichment was performed
 - no batch correction or complex design was performed
+
+For Phase 5.5 DESeq2 outputs, Coze summaries include `contrast`,
+`positive_log2fc_interpretation`, and `negative_log2fc_interpretation` from
+`deseq2_interpretation_summary.json`.
 
 ## Download Links
 
@@ -166,7 +191,8 @@ Coze-facing responses should not claim:
 - causal biology
 - pathway enrichment
 - clinical significance
-- treatment/control direction unless contrast/reference levels are explicit
+- treatment/control direction unless contrast/reference levels are explicit or
+  clearly marked as inferred
 - final DEG lists from minimal CPM/log2FC output
 - biological significance from padj or log2FoldChange alone
 - GO, KEGG, or GSEA results

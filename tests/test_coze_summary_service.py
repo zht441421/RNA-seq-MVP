@@ -85,6 +85,16 @@ def _deseq2_interpretation_payload() -> dict:
         "analysis_method": "deseq2",
         "formal_de_method": "deseq2",
         "status": "deseq2_interpretation_summary_ready",
+        "contrast": {
+            "contrast_column": "condition",
+            "contrast_numerator": "treatment",
+            "contrast_denominator": "control",
+            "direction": "treatment_vs_control",
+            "positive_log2fc_interpretation": "Higher in treatment relative to control",
+            "negative_log2fc_interpretation": "Lower in treatment relative to control",
+            "contrast_source": "explicit",
+            "inferred": False,
+        },
         "summary": {
             "padj_threshold": 0.05,
             "abs_log2fc_threshold": 1.0,
@@ -145,9 +155,27 @@ def test_minimal_workflow_summary_has_exploratory_boundaries(
     isolated_task_env: Path,
 ) -> None:
     task = create_task()
+    _write_json_artifact(
+        isolated_task_env,
+        task.task_id,
+        "execution_summary.json",
+        {
+            "contrast": {
+                "contrast_column": "condition",
+                "contrast_numerator": "treatment",
+                "contrast_denominator": "control",
+                "direction": "treatment_vs_control",
+                "positive_log2fc_interpretation": "Higher in treatment relative to control",
+                "negative_log2fc_interpretation": "Lower in treatment relative to control",
+                "contrast_source": "explicit",
+                "inferred": False,
+            }
+        },
+    )
     _register_artifacts(
         task.task_id,
         [
+            {"name": "execution_summary.json", "artifact_type": "minimal_execution_summary"},
             {"name": "normalized_counts_cpm.csv", "artifact_type": "normalized_counts_cpm"},
             {
                 "name": "differential_expression_results.csv",
@@ -170,6 +198,10 @@ def test_minimal_workflow_summary_has_exploratory_boundaries(
     assert "no formal" in summary_text
     assert "no batch correction" in summary_text
     assert "no go/kegg/gsea" in summary_text
+    assert summary["contrast"]["direction"] == "treatment_vs_control"
+    assert summary["positive_log2fc_interpretation"] == (
+        "Higher in treatment relative to control"
+    )
     _assert_no_forbidden_fragments(summary)
 
 
@@ -204,6 +236,10 @@ def test_deseq2_summary_reads_interpretation_artifact(
     assert summary["threshold_summary"]["padj_threshold"] == 0.05
     assert summary["top_genes_by_padj"][0]["gene_id"] == "GeneA"
     assert summary["top_genes_by_abs_log2fc"][0]["gene_id"] == "GeneB"
+    assert summary["contrast"]["direction"] == "treatment_vs_control"
+    assert summary["negative_log2fc_interpretation"] == (
+        "Lower in treatment relative to control"
+    )
     _assert_no_forbidden_fragments(summary)
 
 

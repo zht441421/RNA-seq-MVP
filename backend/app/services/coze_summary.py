@@ -17,11 +17,13 @@ from backend.app.services.artifact_paths import (
     list_minimal_rnaseq_artifact_specs,
     list_placeholder_artifact_specs,
 )
+from backend.app.services.contrast_validation import contrast_payload_from_mapping
 from backend.app.services.task_service import get_task, list_task_artifacts
 from backend.app.services.task_inputs import safe_registered_inputs_summary
 
 
 DESEQ2_INTERPRETATION_ARTIFACT = "deseq2_interpretation_summary.json"
+MINIMAL_EXECUTION_SUMMARY_ARTIFACT = "execution_summary.json"
 _DESEQ2_RESULT_ARTIFACTS = {
     "deseq2_results.csv",
     DESEQ2_INTERPRETATION_ARTIFACT,
@@ -65,7 +67,15 @@ def build_coze_task_summary(task_id: str) -> dict:
         task.task_id,
         DESEQ2_INTERPRETATION_ARTIFACT,
     )
-    warnings = [parse_warning] if parse_warning else []
+    minimal_execution, minimal_parse_warning = load_safe_json_artifact(
+        task.task_id,
+        MINIMAL_EXECUTION_SUMMARY_ARTIFACT,
+    )
+    warnings = [
+        warning
+        for warning in (parse_warning, minimal_parse_warning)
+        if warning
+    ]
 
     if interpretation is not None or _appears_deseq2(artifacts):
         payload = summarize_deseq2_task(
@@ -80,6 +90,7 @@ def build_coze_task_summary(task_id: str) -> dict:
             task_id=task.task_id,
             status=task.status.value,
             result_files=artifacts,
+            execution_summary=minimal_execution,
             extra_warnings=warnings,
         )
     else:
@@ -122,8 +133,10 @@ def summarize_minimal_task(
     task_id: str,
     status: str,
     result_files: list[dict],
+    execution_summary: dict | None = None,
     extra_warnings: list[str] | None = None,
 ) -> dict:
+    contrast = _contrast_from_payloads(execution_summary)
     warnings = _dedupe(
         [
             *(extra_warnings or []),
@@ -163,6 +176,7 @@ def summarize_minimal_task(
         },
         "top_genes_by_padj": [],
         "top_genes_by_abs_log2fc": [],
+        **_contrast_response_fields(contrast),
         "warnings": warnings,
         "limitations": limitations,
         "interpretation_boundary": _MINIMAL_INTERPRETATION_BOUNDARY,
@@ -185,6 +199,7 @@ def summarize_deseq2_task(
 ) -> dict:
     summary = _safe_mapping((interpretation or {}).get("summary"))
     threshold_summary = _safe_mapping((interpretation or {}).get("threshold_summary"))
+    contrast = _contrast_from_payloads(interpretation, summary)
     if not threshold_summary:
         threshold_summary = {
             "padj_threshold": summary.get("padj_threshold"),
@@ -244,6 +259,7 @@ def summarize_deseq2_task(
         "threshold_summary": threshold_summary,
         "top_genes_by_padj": _safe_list(summary.get("top_genes_by_padj")),
         "top_genes_by_abs_log2fc": _safe_list(summary.get("top_genes_by_abs_log2fc")),
+        **_contrast_response_fields(contrast),
         "warnings": warnings,
         "limitations": limitations,
         "interpretation_boundary": (interpretation or {}).get(
@@ -276,6 +292,39 @@ def sanitize_summary_payload(payload: dict) -> dict:
     return _sanitize_value(payload)
 
 
+def _contrast_from_payloads(*payloads: object) -> dict | None:
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        direct = contrast_payload_from_mapping(payload.get("contrast"))
+        if direct is not None:
+            return direct
+        nested_summary = payload.get("summary")
+        if isinstance(nested_summary, dict):
+            nested = contrast_payload_from_mapping(nested_summary.get("contrast"))
+            if nested is not None:
+                return nested
+    return None
+
+
+def _contrast_response_fields(contrast: dict | None) -> dict:
+    if contrast is None:
+        return {
+            "contrast": None,
+            "positive_log2fc_interpretation": None,
+            "negative_log2fc_interpretation": None,
+        }
+    return {
+        "contrast": contrast,
+        "positive_log2fc_interpretation": contrast.get(
+            "positive_log2fc_interpretation"
+        ),
+        "negative_log2fc_interpretation": contrast.get(
+            "negative_log2fc_interpretation"
+        ),
+    }
+
+
 def _partial_task_summary(
     *,
     task_id: str,
@@ -299,6 +348,7 @@ def _partial_task_summary(
         "threshold_summary": {},
         "top_genes_by_padj": [],
         "top_genes_by_abs_log2fc": [],
+        **_contrast_response_fields(None),
         "warnings": _dedupe(
             [
                 *(extra_warnings or []),

@@ -51,6 +51,14 @@ task-result summaries intended for Coze and front-end consumption.
 Phase 5.4 adds `POST /task/{task_id}/inputs/register` for safe task-scoped
 metadata/count-matrix input registration under `BIOINFO_INPUT_ROOT`.
 
+Phase 5.5 adds optional DESeq2/minimal contrast direction fields on
+`POST /task/run`: `contrast_column`, `contrast_numerator`, and
+`contrast_denominator`. When omitted, two-group metadata keeps the existing
+deterministic inferred direction. When supplied, minimal CPM/log2FC and DESeq2
+artifacts state that positive log2FC means higher expression in the numerator
+relative to the denominator. See
+`docs/phase-5-deseq2-contrast-control.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

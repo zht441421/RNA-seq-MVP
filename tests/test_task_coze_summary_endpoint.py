@@ -85,6 +85,16 @@ def _write_json_artifact(
 
 def _deseq2_interpretation_payload() -> dict:
     return {
+        "contrast": {
+            "contrast_column": "condition",
+            "contrast_numerator": "treatment",
+            "contrast_denominator": "control",
+            "direction": "treatment_vs_control",
+            "positive_log2fc_interpretation": "Higher in treatment relative to control",
+            "negative_log2fc_interpretation": "Lower in treatment relative to control",
+            "contrast_source": "explicit",
+            "inferred": False,
+        },
         "summary": {
             "padj_threshold": 0.05,
             "abs_log2fc_threshold": 1.0,
@@ -136,9 +146,27 @@ def test_created_task_with_minimal_artifacts_returns_safe_summary(
 ) -> None:
     client = TestClient(app)
     task_id = _create_task(client)
+    _write_json_artifact(
+        isolated_task_env,
+        task_id,
+        "execution_summary.json",
+        {
+            "contrast": {
+                "contrast_column": "condition",
+                "contrast_numerator": "treatment",
+                "contrast_denominator": "control",
+                "direction": "treatment_vs_control",
+                "positive_log2fc_interpretation": "Higher in treatment relative to control",
+                "negative_log2fc_interpretation": "Lower in treatment relative to control",
+                "contrast_source": "explicit",
+                "inferred": False,
+            }
+        },
+    )
     _register_artifacts(
         task_id,
         [
+            {"name": "execution_summary.json", "artifact_type": "minimal_execution_summary"},
             {"name": "normalized_counts_cpm.csv", "artifact_type": "normalized_counts_cpm"},
             {
                 "name": "differential_expression_results.csv",
@@ -159,6 +187,10 @@ def test_created_task_with_minimal_artifacts_returns_safe_summary(
     assert body["adjusted_pvalue_available"] is False
     assert body["download_links"]["report.md"] == (
         f"/task/{task_id}/artifacts/report.md/download"
+    )
+    assert body["contrast"]["direction"] == "treatment_vs_control"
+    assert body["positive_log2fc_interpretation"] == (
+        "Higher in treatment relative to control"
     )
     _assert_no_forbidden_fragments(body)
 
@@ -200,6 +232,10 @@ def test_mocked_deseq2_task_with_interpretation_artifact_returns_summary(
     )
     assert body["download_links"]["deseq2_interpretation_summary.json"] == (
         f"/task/{task_id}/artifacts/deseq2_interpretation_summary.json/download"
+    )
+    assert body["contrast"]["direction"] == "treatment_vs_control"
+    assert body["negative_log2fc_interpretation"] == (
+        "Lower in treatment relative to control"
     )
     _assert_no_forbidden_fragments(body)
 

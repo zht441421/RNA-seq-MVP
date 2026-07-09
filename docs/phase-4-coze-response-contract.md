@@ -20,6 +20,9 @@ A Coze response payload should include:
 - `threshold_summary`
 - `top_genes_by_padj`
 - `top_genes_by_abs_log2fc`
+- `contrast`
+- `positive_log2fc_interpretation`
+- `negative_log2fc_interpretation`
 - `warnings`
 - `limitations`
 - `interpretation_boundary`
@@ -70,9 +73,24 @@ The response should include:
 Statistical significance does not automatically imply biological significance.
 ```
 
-It should also state that log2FoldChange direction depends on DESeq2
-contrast/reference level and should avoid claiming treatment/control direction
-unless the contrast/reference is explicitly recorded.
+It should also state log2FoldChange direction from the recorded contrast. When
+available, Coze-facing payloads should include:
+
+```json
+{
+  "contrast": {
+    "contrast_column": "condition",
+    "contrast_numerator": "treatment",
+    "contrast_denominator": "control",
+    "direction": "treatment_vs_control"
+  },
+  "positive_log2fc_interpretation": "Higher in treatment relative to control",
+  "negative_log2fc_interpretation": "Lower in treatment relative to control"
+}
+```
+
+If the contrast was inferred instead of explicitly requested, the payload should
+retain that fact and Coze should phrase the direction as inferred.
 
 ## Warnings
 
@@ -91,6 +109,7 @@ The `limitations` field should include:
 
 - DESeq2 Phase 4.8 uses the minimal design formula `~ condition`.
 - Exactly two conditions are supported.
+- Phase 5.5 supports explicit contrast direction only for `condition`.
 - No batch correction is performed.
 - No complex design formula is implemented.
 - No GO, KEGG, GSEA, pathway, or enrichment analysis is performed.

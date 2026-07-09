@@ -12,6 +12,7 @@ from backend.app.services.artifact_paths import (
     list_placeholder_artifact_specs,
     resolve_task_artifact_path,
 )
+from backend.app.services.contrast_validation import resolve_contrast
 from backend.app.services.input_validation import validate_rnaseq_input_files
 from backend.app.services.rnaseq_minimal import (
     CountMatrix,
@@ -53,6 +54,12 @@ _PRELIMINARY_LOG2FC_FIELDNAMES = [
     "formal_statistical_test",
     "pvalue_available",
     "adjusted_pvalue_available",
+    "contrast_column",
+    "contrast_numerator",
+    "contrast_denominator",
+    "contrast_direction",
+    "positive_log2fc_interpretation",
+    "negative_log2fc_interpretation",
     "analysis_note",
 ]
 
@@ -64,6 +71,9 @@ class ExecutionRequest:
     omics_type: str = "unspecified"
     metadata_file: str | None = None
     count_matrix_file: str | None = None
+    contrast_column: str | None = None
+    contrast_numerator: str | None = None
+    contrast_denominator: str | None = None
     execution_mode: str = "dry_run"
     output_dir_relative: str | None = None
     dry_run: bool = True
@@ -354,6 +364,14 @@ def run_minimal_bulk_rnaseq(
     except ValueError as exc:
         raise build_validation_error([str(exc)], warnings) from exc
 
+    contrast = resolve_contrast(
+        metadata,
+        contrast_column=request.contrast_column,
+        contrast_numerator=request.contrast_numerator,
+        contrast_denominator=request.contrast_denominator,
+    )
+    contrast_payload = contrast.as_dict()
+
     output_dir = ensure_task_output_dir(request.task_id)
     output_dir_relative = output_dir.relative_to(get_output_root()).as_posix()
     generated_file_entries = _minimal_generated_file_entries(request.task_id)
@@ -366,7 +384,7 @@ def run_minimal_bulk_rnaseq(
     condition_counts = _condition_counts(metadata)
     warnings.extend(_library_size_warnings(library_sizes))
 
-    preliminary_rows = compute_preliminary_log2fc(filtered_cpm, metadata)
+    preliminary_rows = compute_preliminary_log2fc(filtered_cpm, metadata, contrast)
 
     qc_summary = {
         "task_id": request.task_id,
@@ -400,6 +418,13 @@ def run_minimal_bulk_rnaseq(
         "external_tools_called": method_contract["external_tools_called"],
         "method_limitations": method_contract["method_limitations"],
         "next_supported_formal_methods": method_contract["next_supported_formal_methods"],
+        "contrast": contrast_payload,
+        "positive_log2fc_interpretation": contrast_payload[
+            "positive_log2fc_interpretation"
+        ],
+        "negative_log2fc_interpretation": contrast_payload[
+            "negative_log2fc_interpretation"
+        ],
         "generated_files": generated_file_entries,
         "warnings": warnings,
         "limitations": limitations,
@@ -417,6 +442,13 @@ def run_minimal_bulk_rnaseq(
         "metadata_file": request.metadata_file,
         "count_matrix_file": request.count_matrix_file,
         "output_dir_relative": output_dir_relative,
+        "contrast": contrast_payload,
+        "positive_log2fc_interpretation": contrast_payload[
+            "positive_log2fc_interpretation"
+        ],
+        "negative_log2fc_interpretation": contrast_payload[
+            "negative_log2fc_interpretation"
+        ],
         "generated_files": generated_file_entries,
         "limitations": limitations,
     }
@@ -433,6 +465,7 @@ def run_minimal_bulk_rnaseq(
         min_total_count_filter=_MINIMAL_LOW_COUNT_FILTER,
         generated_files=generated_file_entries,
         preliminary_rows=preliminary_rows,
+        contrast=contrast_payload,
     )
 
     write_json(resolve_task_artifact_path(request.task_id, "run_manifest.json"), run_manifest)
@@ -546,6 +579,9 @@ def execute_task_minimal_rnaseq(
     registry_record: TaskRecord | None = None,
     project_name: str | None = None,
     omics_type: str | None = None,
+    contrast_column: str | None = None,
+    contrast_numerator: str | None = None,
+    contrast_denominator: str | None = None,
 ) -> ExecutionResult:
     request = ExecutionRequest(
         task_id=task_id,
@@ -559,6 +595,9 @@ def execute_task_minimal_rnaseq(
         ),
         metadata_file=metadata_file,
         count_matrix_file=count_matrix_file,
+        contrast_column=contrast_column,
+        contrast_numerator=contrast_numerator,
+        contrast_denominator=contrast_denominator,
         execution_mode="minimal_real",
         dry_run=False,
     )
