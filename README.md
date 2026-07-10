@@ -86,6 +86,14 @@ payloads are available under `docs/examples/coze/`. The Coze-facing endpoint
 sequence and response boundaries are documented in
 `docs/phase-6-1-coze-api-contract.md`.
 
+## Phase 6.2 Coze Plugin Manifest Preparation
+
+Phase 6.2 adds draft plugin/manifest preparation materials under
+`docs/examples/coze_manifest/` and documents the future Coze endpoint selection
+strategy in `docs/phase-6-2-coze-plugin-manifest-preparation.md`. These files
+are preparation artifacts only: no real Coze publication, no public deployment,
+and no runtime behavior changes are included.
+
 Phase 1 has been validated and tagged as:
 
 ```text

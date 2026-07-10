@@ -1,0 +1,26 @@
+{
+  "name": "bioinformatics_rnaseq_task_api",
+  "display_name": "Bulk RNA-seq Task API",
+  "description": "Draft Coze plugin metadata for the backend Bulk RNA-seq task lifecycle API.",
+  "version": "0.1.0-draft",
+  "category": "bioinformatics",
+  "intended_users": [
+    "researchers with Bulk RNA-seq count matrix data",
+    "analysts preparing exploratory RNA-seq task runs",
+    "developers configuring a future Coze API tool"
+  ],
+  "safety_notes": [
+    "Use safe relative input paths only.",
+    "Do not expose local absolute paths in user-facing responses.",
+    "Use coze-summary before presenting results.",
+    "Do not describe exploratory minimal workflow output as formal statistical evidence.",
+    "Do not claim DESeq2 ran unless the DESeq2 run completed."
+  ],
+  "limitations": [
+    "Draft preparation metadata only; not a published Coze plugin.",
+    "No real Coze publication is included.",
+    "No public deployment is included.",
+    "No frontend is included.",
+    "No edgeR, limma, or enrichment analysis is included."
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "name": "initial_coze_openapi_endpoint_selection",
+  "description": "Recommended initial endpoint subset for a future Coze plugin import.",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "purpose": "Check backend reachability.",
+      "required_for_initial_coze": true,
+      "user_visible": false,
+      "safety_notes": "Health response contains service status only."
+    },
+    {
+      "method": "POST",
+      "path": "/task/create",
+      "purpose": "Create a task and return task_id.",
+      "required_for_initial_coze": true,
+      "user_visible": true,
+      "safety_notes": "Does not read user files."
+    },
+    {
+      "method": "POST",
+      "path": "/task/{task_id}/inputs/register",
+      "purpose": "Register metadata or count matrix input by safe relative path.",
+      "required_for_initial_coze": true,
+      "user_visible": true,
+      "safety_notes": "Reject local absolute paths and path traversal."
+    },
+    {
+      "method": "POST",
+      "path": "/task/run",
+      "purpose": "Run the minimal workflow or request DESeq2 when preflight is ready.",
+      "required_for_initial_coze": true,
+      "user_visible": true,
+      "safety_notes": "Uses registered task inputs and preserves existing response shape."
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/status",
+      "purpose": "Poll task lifecycle status.",
+      "required_for_initial_coze": true,
+      "user_visible": true,
+      "safety_notes": "Returns task status and message only."
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/coze-summary",
+      "purpose": "Fetch the safe structured result summary for Coze presentation.",
+      "required_for_initial_coze": true,
+      "user_visible": true,
+      "safety_notes": "Uses relative artifact download paths and documented limitations."
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts",
+      "purpose": "List task-scoped artifacts before download.",
+      "required_for_initial_coze": false,
+      "user_visible": true,
+      "safety_notes": "Lists safe relative artifact paths only."
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts/{artifact_name}/download",
+      "purpose": "Download a known task-scoped artifact.",
+      "required_for_initial_coze": true,
+      "user_visible": true,
+      "safety_notes": "Rejects arbitrary filesystem reads and unknown artifact names."
+    },
+    {
+      "method": "GET",
+      "path": "/task/formal-de/preflight",
+      "purpose": "Check R, Rscript, BiocManager, and DESeq2 readiness before DESeq2.",
+      "required_for_initial_coze": false,
+      "user_visible": true,
+      "safety_notes": "Does not run differential expression analysis."
+    }
+  ]
+}

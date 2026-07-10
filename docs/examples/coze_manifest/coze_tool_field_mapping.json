@@ -1,0 +1,53 @@
+{
+  "name": "coze_tool_field_mapping",
+  "description": "Mapping from user-facing Coze concepts to backend API fields.",
+  "mappings": [
+    {
+      "user_concept": "metadata file",
+      "api_fields": {
+        "input_role": "metadata",
+        "source_relative_path": "relative path to metadata CSV, TSV, or TXT"
+      },
+      "notes": "Register with POST /task/{task_id}/inputs/register."
+    },
+    {
+      "user_concept": "counts file",
+      "api_fields": {
+        "input_role": "count_matrix",
+        "source_relative_path": "relative path to count matrix CSV, TSV, or TXT"
+      },
+      "notes": "Register with POST /task/{task_id}/inputs/register."
+    },
+    {
+      "user_concept": "comparison column",
+      "api_fields": {
+        "contrast_column": "metadata column containing the compared groups",
+        "group_column": "same user-facing metadata column for planning context"
+      },
+      "notes": "Current MVP supports condition as the primary contrast column."
+    },
+    {
+      "user_concept": "treatment group",
+      "api_fields": {
+        "contrast_numerator": "group expected to be positive when expression is higher"
+      },
+      "notes": "Positive log2FC means higher in this group relative to the denominator."
+    },
+    {
+      "user_concept": "control group",
+      "api_fields": {
+        "contrast_denominator": "reference group for the comparison"
+      },
+      "notes": "Negative log2FC means lower in the numerator relative to this group."
+    },
+    {
+      "user_concept": "analysis type",
+      "api_fields": {
+        "analysis_method": "minimal_cpm_log2fc or deseq2",
+        "formal_de_method": "deseq2 only when formal DESeq2 is requested",
+        "execution_mode": "minimal_real or formal_de_real"
+      },
+      "notes": "Check DESeq2 preflight before formal_de_real."
+    }
+  ]
+}

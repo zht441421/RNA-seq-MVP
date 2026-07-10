@@ -1,0 +1,65 @@
+{
+  "name": "initial_coze_task_lifecycle_sequence",
+  "description": "Recommended endpoint order for a future Coze integration.",
+  "sequence": [
+    {
+      "step": 1,
+      "method": "POST",
+      "path": "/task/create",
+      "purpose": "Create a backend task and receive task_id.",
+      "required_for_initial_coze": true
+    },
+    {
+      "step": 2,
+      "method": "POST",
+      "path": "/task/{task_id}/inputs/register",
+      "purpose": "Register metadata and count matrix inputs with safe relative paths.",
+      "required_for_initial_coze": true
+    },
+    {
+      "step": 3,
+      "method": "POST",
+      "path": "/task/run",
+      "purpose": "Run minimal_cpm_log2fc or request DESeq2 after preflight readiness.",
+      "required_for_initial_coze": true
+    },
+    {
+      "step": 4,
+      "method": "GET",
+      "path": "/task/{task_id}/status",
+      "purpose": "Check task lifecycle status.",
+      "required_for_initial_coze": true
+    },
+    {
+      "step": 5,
+      "method": "GET",
+      "path": "/task/{task_id}/coze-summary",
+      "purpose": "Fetch a Coze-safe structured summary before presenting results.",
+      "required_for_initial_coze": true
+    },
+    {
+      "step": 6,
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts/{artifact_name}/download",
+      "purpose": "Download known task-scoped artifacts through relative API paths.",
+      "required_for_initial_coze": true
+    }
+  ],
+  "supporting_endpoints": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "purpose": "Confirm the backend is reachable."
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts",
+      "purpose": "List known task artifacts before download."
+    },
+    {
+      "method": "GET",
+      "path": "/task/formal-de/preflight",
+      "purpose": "Check whether DESeq2 runtime requirements are ready before requesting DESeq2."
+    }
+  ]
+}

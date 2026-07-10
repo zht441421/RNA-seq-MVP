@@ -1,0 +1,1544 @@
+{
+  "components": {
+    "schemas": {
+      "AnalysisPlanRequest": {
+        "properties": {
+          "analysis_goal": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Analysis Goal",
+            "type": "array"
+          },
+          "contrast": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast"
+          },
+          "group_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Column"
+          },
+          "input_level": {
+            "title": "Input Level",
+            "type": "string"
+          },
+          "omics_type": {
+            "title": "Omics Type",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level"
+        ],
+        "title": "AnalysisPlanRequest",
+        "type": "object"
+      },
+      "AnalysisPlanResponse": {
+        "properties": {
+          "input_level": {
+            "title": "Input Level",
+            "type": "string"
+          },
+          "omics_type": {
+            "title": "Omics Type",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "recommended_workflow": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisStep"
+            },
+            "title": "Recommended Workflow",
+            "type": "array"
+          },
+          "reliability_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reliability Notes",
+            "type": "array"
+          },
+          "status": {
+            "default": "planned",
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level",
+          "recommended_workflow"
+        ],
+        "title": "AnalysisPlanResponse",
+        "type": "object"
+      },
+      "AnalysisStep": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "order": {
+            "title": "Order",
+            "type": "integer"
+          },
+          "status": {
+            "default": "planned",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order",
+          "name",
+          "description"
+        ],
+        "title": "AnalysisStep",
+        "type": "object"
+      },
+      "AuditEvent": {
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "message",
+          "timestamp",
+          "actor"
+        ],
+        "title": "AuditEvent",
+        "type": "object"
+      },
+      "FormalDEPreflightChecks": {
+        "properties": {
+          "biocmanager_available": {
+            "title": "Biocmanager Available",
+            "type": "boolean"
+          },
+          "checked_at": {
+            "title": "Checked At",
+            "type": "string"
+          },
+          "commands_checked": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commands Checked",
+            "type": "array"
+          },
+          "deseq2_available": {
+            "title": "Deseq2 Available",
+            "type": "boolean"
+          },
+          "r_available": {
+            "title": "R Available",
+            "type": "boolean"
+          },
+          "r_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R Version"
+          },
+          "rscript_available": {
+            "title": "Rscript Available",
+            "type": "boolean"
+          },
+          "rscript_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rscript Version"
+          }
+        },
+        "required": [
+          "r_available",
+          "rscript_available",
+          "biocmanager_available",
+          "deseq2_available",
+          "checked_at"
+        ],
+        "title": "FormalDEPreflightChecks",
+        "type": "object"
+      },
+      "FormalDEPreflightResponse": {
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/FormalDEPreflightChecks"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "formal_method": {
+            "default": "deseq2",
+            "title": "Formal Method",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "status": {
+            "default": "formal_de_preflight_completed",
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ready",
+          "checks"
+        ],
+        "title": "FormalDEPreflightResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "QCCheck": {
+        "properties": {
+          "check_id": {
+            "title": "Check Id",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "status": {
+            "default": "planned",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check_id",
+          "name",
+          "description"
+        ],
+        "title": "QCCheck",
+        "type": "object"
+      },
+      "QCRequest": {
+        "properties": {
+          "contrast": {
+            "title": "Contrast",
+            "type": "string"
+          },
+          "count_matrix_file": {
+            "title": "Count Matrix File",
+            "type": "string"
+          },
+          "group_column": {
+            "title": "Group Column",
+            "type": "string"
+          },
+          "input_level": {
+            "title": "Input Level",
+            "type": "string"
+          },
+          "metadata_file": {
+            "title": "Metadata File",
+            "type": "string"
+          },
+          "omics_type": {
+            "title": "Omics Type",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "sample_id_column": {
+            "title": "Sample Id Column",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level",
+          "metadata_file",
+          "count_matrix_file",
+          "sample_id_column",
+          "group_column",
+          "contrast"
+        ],
+        "title": "QCRequest",
+        "type": "object"
+      },
+      "QCResponse": {
+        "properties": {
+          "input_level": {
+            "title": "Input Level",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "omics_type": {
+            "title": "Omics Type",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "qc_checks": {
+            "items": {
+              "$ref": "#/components/schemas/QCCheck"
+            },
+            "title": "Qc Checks",
+            "type": "array"
+          },
+          "reliability_gates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reliability Gates",
+            "type": "array"
+          },
+          "status": {
+            "default": "qc_planned",
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "project_name",
+          "omics_type",
+          "input_level",
+          "qc_checks"
+        ],
+        "title": "QCResponse",
+        "type": "object"
+      },
+      "ReportSection": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "section_id": {
+            "title": "Section Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id",
+          "title",
+          "content"
+        ],
+        "title": "ReportSection",
+        "type": "object"
+      },
+      "TaskArtifact": {
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_type": {
+            "title": "Artifact Type",
+            "type": "string"
+          },
+          "available": {
+            "default": false,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "name",
+          "artifact_type",
+          "description"
+        ],
+        "title": "TaskArtifact",
+        "type": "object"
+      },
+      "TaskArtifactsResponse": {
+        "properties": {
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/TaskArtifact"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "status": {
+            "default": "artifacts_placeholder_ready",
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "artifacts"
+        ],
+        "title": "TaskArtifactsResponse",
+        "type": "object"
+      },
+      "TaskAuditResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "status": {
+            "default": "audit_placeholder_ready",
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "events"
+        ],
+        "title": "TaskAuditResponse",
+        "type": "object"
+      },
+      "TaskCreateRequest": {
+        "properties": {
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "task_type": {
+            "default": "placeholder",
+            "title": "Task Type",
+            "type": "string"
+          }
+        },
+        "title": "TaskCreateRequest",
+        "type": "object"
+      },
+      "TaskInputFileValidationResponse": {
+        "properties": {
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "exists": {
+            "title": "Exists",
+            "type": "boolean"
+          },
+          "safe_relative_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Relative Path"
+          },
+          "suffix": {
+            "title": "Suffix",
+            "type": "string"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "exists",
+          "suffix",
+          "valid"
+        ],
+        "title": "TaskInputFileValidationResponse",
+        "type": "object"
+      },
+      "TaskInputRegisterRequest": {
+        "properties": {
+          "input_role": {
+            "title": "Input Role",
+            "type": "string"
+          },
+          "source_relative_path": {
+            "title": "Source Relative Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_role",
+          "source_relative_path"
+        ],
+        "title": "TaskInputRegisterRequest",
+        "type": "object"
+      },
+      "TaskInputRegistrationResponse": {
+        "properties": {
+          "checksum_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checksum Sha256"
+          },
+          "file_size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size Bytes"
+          },
+          "input_role": {
+            "title": "Input Role",
+            "type": "string"
+          },
+          "next_required_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Required Inputs",
+            "type": "array"
+          },
+          "registered": {
+            "default": true,
+            "title": "Registered",
+            "type": "boolean"
+          },
+          "safe_relative_path": {
+            "title": "Safe Relative Path",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_id",
+          "input_role",
+          "safe_relative_path"
+        ],
+        "title": "TaskInputRegistrationResponse",
+        "type": "object"
+      },
+      "TaskReportResponse": {
+        "properties": {
+          "artifacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "status": {
+            "default": "report_placeholder_ready",
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "summary",
+          "sections"
+        ],
+        "title": "TaskReportResponse",
+        "type": "object"
+      },
+      "TaskResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "status",
+          "message"
+        ],
+        "title": "TaskResponse",
+        "type": "object"
+      },
+      "TaskRunRequest": {
+        "properties": {
+          "analysis_goal": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Analysis Goal",
+            "type": "array"
+          },
+          "analysis_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Method"
+          },
+          "contrast": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast"
+          },
+          "contrast_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast Column"
+          },
+          "contrast_denominator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast Denominator"
+          },
+          "contrast_numerator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrast Numerator"
+          },
+          "count_matrix_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count Matrix File"
+          },
+          "execution_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Mode"
+          },
+          "formal_de_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formal De Method"
+          },
+          "group_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Column"
+          },
+          "input_level": {
+            "title": "Input Level",
+            "type": "string"
+          },
+          "metadata_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata File"
+          },
+          "omics_type": {
+            "title": "Omics Type",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "project_name",
+          "omics_type",
+          "input_level"
+        ],
+        "title": "TaskRunRequest",
+        "type": "object"
+      },
+      "TaskRunResponse": {
+        "properties": {
+          "artifacts": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "run_steps": {
+            "items": {
+              "$ref": "#/components/schemas/TaskRunStep"
+            },
+            "title": "Run Steps",
+            "type": "array"
+          },
+          "status": {
+            "default": "run_placeholder_completed",
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "project_name",
+          "run_steps"
+        ],
+        "title": "TaskRunResponse",
+        "type": "object"
+      },
+      "TaskRunStep": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step_id",
+          "name",
+          "status",
+          "message"
+        ],
+        "title": "TaskRunStep",
+        "type": "object"
+      },
+      "TaskStatus": {
+        "enum": [
+          "created",
+          "planned",
+          "qc_placeholder_ready",
+          "run_placeholder_ready",
+          "report_placeholder_ready",
+          "artifacts_placeholder_ready",
+          "audit_placeholder_ready"
+        ],
+        "title": "TaskStatus",
+        "type": "string"
+      },
+      "TaskValidateInputsRequest": {
+        "properties": {
+          "count_matrix_file": {
+            "title": "Count Matrix File",
+            "type": "string"
+          },
+          "metadata_file": {
+            "title": "Metadata File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "metadata_file",
+          "count_matrix_file"
+        ],
+        "title": "TaskValidateInputsRequest",
+        "type": "object"
+      },
+      "TaskValidateInputsResponse": {
+        "properties": {
+          "count_matrix": {
+            "$ref": "#/components/schemas/TaskInputFileValidationResponse"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/TaskInputFileValidationResponse"
+          },
+          "status": {
+            "default": "input_validation_completed",
+            "title": "Status",
+            "type": "string"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "metadata",
+          "count_matrix"
+        ],
+        "title": "TaskValidateInputsResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Phase 6.2 draft subset for initial Coze plugin preparation. Generated from docs/openapi.json without changing runtime schemas.",
+    "title": "Bioinformatics Agent Backend",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/task/create": {
+      "post": {
+        "operationId": "create_task_endpoint_task_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/TaskCreateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Task Endpoint",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/formal-de/preflight": {
+      "get": {
+        "operationId": "get_formal_de_preflight_task_formal_de_preflight_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormalDEPreflightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Formal De Preflight",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/run": {
+      "post": {
+        "operationId": "run_task_placeholder_task_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Task Placeholder",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/{task_id}/artifacts": {
+      "get": {
+        "operationId": "get_task_artifacts_task__task_id__artifacts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskArtifactsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Task Artifacts",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/{task_id}/artifacts/{artifact_name}/download": {
+      "get": {
+        "operationId": "download_task_artifact_task__task_id__artifacts__artifact_name__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "artifact_name",
+            "required": true,
+            "schema": {
+              "title": "Artifact Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Task Artifact",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/{task_id}/coze-summary": {
+      "get": {
+        "operationId": "get_task_coze_summary_task__task_id__coze_summary_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Task Coze Summary Task  Task Id  Coze Summary Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Task Coze Summary",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/{task_id}/inputs/register": {
+      "post": {
+        "operationId": "register_task_input_endpoint_task__task_id__inputs_register_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInputRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskInputRegistrationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Task Input Endpoint",
+        "tags": [
+          "task"
+        ]
+      }
+    },
+    "/task/{task_id}/status": {
+      "get": {
+        "operationId": "get_task_status_task__task_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Task Status",
+        "tags": [
+          "task"
+        ]
+      }
+    }
+  },
+  "x-phase": "6.2",
+  "x-purpose": "coze-plugin-manifest-preparation",
+  "x-selected-endpoints": [
+    {
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "method": "POST",
+      "path": "/task/create"
+    },
+    {
+      "method": "POST",
+      "path": "/task/{task_id}/inputs/register"
+    },
+    {
+      "method": "POST",
+      "path": "/task/run"
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/status"
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/coze-summary"
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts"
+    },
+    {
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts/{artifact_name}/download"
+    },
+    {
+      "method": "GET",
+      "path": "/task/formal-de/preflight"
+    }
+  ]
+}
