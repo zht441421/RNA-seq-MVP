@@ -118,6 +118,17 @@ response shapes remain unchanged. See
 `docs/phase-6-4-deployment-runbook.md` and
 `docs/phase-6-4-operator-checklist.md`.
 
+## Phase 6 Deployment-Readiness Baseline
+
+Phase 6 is complete at the deployment-readiness documentation, draft
+Coze plugin/manifest preparation, and local verification level. The local HTTP
+smoke test remains available at
+`python scripts\run_phase_6_3_local_api_smoke_test.py`, while the Coze
+plugin/OpenAPI materials remain draft preparation files. Public deployment and
+real Coze publication are not included, and runtime behavior and API response
+shapes remain unchanged. See `docs/phase-6-completion-baseline.md` and
+`docs/phase-6-deployment-readiness-checklist.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
