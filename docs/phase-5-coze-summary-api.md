@@ -5,6 +5,10 @@ front-end consumers. It does not change minimal CPM/log2FC execution, DESeq2
 execution, file upload behavior, frontend code, Coze API calls, workflow
 engines, Docker, or database server dependencies.
 
+Phase 5.6 adds `scripts/run_phase_5_6_coze_ready_demo.py` as a reproducible
+backend demo that exercises this endpoint after task input registration,
+artifact downloads, and explicit minimal-workflow contrast control.
+
 ## Endpoint
 
 ```text

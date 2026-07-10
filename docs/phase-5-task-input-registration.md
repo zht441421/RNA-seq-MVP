@@ -6,6 +6,10 @@ running the current minimal CPM/log2FC or DESeq2 workflows. It does not add new
 bioinformatics methods, frontend code, real Coze calls, workflow engines,
 Docker, database server dependencies, or arbitrary filesystem access.
 
+Phase 5.6 validates this flow end to end in
+`scripts/run_phase_5_6_coze_ready_demo.py`, where `/task/run` uses registered
+metadata and count-matrix inputs without repeating explicit run input paths.
+
 ## Endpoint
 
 ```text

@@ -6,6 +6,9 @@ analysis, frontend code, real Coze API calls, Docker, Snakemake, Nextflow,
 database server dependencies, workflow engines, arbitrary filesystem reads, or
 local absolute path exposure.
 
+Phase 5.6 demonstrates explicit contrast behavior in the R-independent minimal
+workflow through `scripts/run_phase_5_6_coze_ready_demo.py`.
+
 ## Purpose
 
 The goal is to make log2 fold-change direction explicit:

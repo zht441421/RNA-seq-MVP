@@ -59,6 +59,12 @@ artifacts state that positive log2FC means higher expression in the numerator
 relative to the denominator. See
 `docs/phase-5-deseq2-contrast-control.md`.
 
+Phase 5.6 adds a reproducible Coze-ready backend demo:
+`python scripts\run_phase_5_6_coze_ready_demo.py`. The demo creates a task,
+registers inputs, runs `minimal_cpm_log2fc` with explicit contrast, downloads
+artifacts, fetches `coze-summary`, and verifies public responses are safe for
+front-end or Coze presentation. See `docs/phase-5-6-coze-ready-demo.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
