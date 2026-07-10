@@ -65,6 +65,15 @@ registers inputs, runs `minimal_cpm_log2fc` with explicit contrast, downloads
 artifacts, fetches `coze-summary`, and verifies public responses are safe for
 front-end or Coze presentation. See `docs/phase-5-6-coze-ready-demo.md`.
 
+## Current Phase 5 MVP Integration Status
+
+Phase 5 is Coze-ready at the backend contract level. The full minimal workflow
+demo is available through `python scripts\run_phase_5_6_coze_ready_demo.py`.
+DESeq2 remains available only when local R/Rscript/DESeq2 preflight readiness
+passes. External Coze API calls and frontend code are not included yet. See
+`docs/phase-5-completion-baseline.md` and
+`docs/phase-5-mvp-integration-checklist.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

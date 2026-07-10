@@ -5,6 +5,9 @@ Coze-ready task lifecycle. It uses the minimal CPM/log2FC workflow so it does
 not require R, Rscript, BiocManager, DESeq2, Docker, workflow engines, frontend
 code, or real Coze API calls.
 
+Phase 5.7 freezes this demo as part of the Phase 5 MVP integration baseline in
+`docs/phase-5-completion-baseline.md`.
+
 ## Purpose
 
 The demo proves that a client can:

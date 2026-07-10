@@ -9,6 +9,9 @@ Phase 5.6 adds `scripts/run_phase_5_6_coze_ready_demo.py` as a reproducible
 backend demo that exercises this endpoint after task input registration,
 artifact downloads, and explicit minimal-workflow contrast control.
 
+Phase 5.7 freezes this endpoint contract in
+`docs/phase-5-completion-baseline.md`.
+
 ## Endpoint
 
 ```text
