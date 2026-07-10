@@ -129,6 +129,17 @@ real Coze publication are not included, and runtime behavior and API response
 shapes remain unchanged. See `docs/phase-6-completion-baseline.md` and
 `docs/phase-6-deployment-readiness-checklist.md`.
 
+## Phase 7.1 Production-Facing Hardening / API Security Baseline
+
+Phase 7.1 adds a production-facing hardening and API security documentation
+baseline for eventual external API or Coze exposure. The security baseline and
+operator checklist are available at
+`docs/phase-7-1-api-security-baseline.md` and
+`docs/phase-7-1-production-hardening-checklist.md`. Built-in authentication is
+not enforced yet, and neither public deployment nor real Coze publication is
+included. This phase is documentation and offline validation only, so runtime
+routes, schemas, response shapes, and default behavior remain unchanged.
+
 Phase 1 has been validated and tagged as:
 
 ```text
