@@ -140,6 +140,16 @@ not enforced yet, and neither public deployment nor real Coze publication is
 included. This phase is documentation and offline validation only, so runtime
 routes, schemas, response shapes, and default behavior remain unchanged.
 
+## Phase 7.2 Optional API Key Auth Scaffold
+
+Phase 7.2 adds optional API key authentication for task endpoints. It is
+disabled by default, preserving current behavior without requiring a key.
+Set `BIOINFO_REQUIRE_API_KEY=true` and provide `BIOINFO_API_KEY` to enable it;
+the request header defaults to `X-Bioinfo-API-Key` and can be overridden with
+`BIOINFO_API_KEY_HEADER`. The health and OpenAPI endpoints remain public for
+load-balancer and schema access. Public deployment and real Coze publication
+are still not included. See `docs/phase-7-2-api-key-auth-scaffold.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
