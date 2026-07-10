@@ -1,0 +1,9 @@
+{
+  "detail": {
+    "error_code": "CONTRAST_VALIDATION_FAILED",
+    "message": "Contrast validation failed.",
+    "errors": [
+      "contrast_numerator 'case' is not present in metadata."
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "task_id": "task_0001",
+  "project_name": "coze_contract_demo",
+  "omics_type": "bulk_rnaseq",
+  "input_level": "count_matrix",
+  "analysis_goal": [
+    "qc",
+    "differential_expression"
+  ],
+  "group_column": "condition",
+  "contrast": "treatment_vs_control",
+  "execution_mode": "minimal_real",
+  "analysis_method": "minimal_cpm_log2fc",
+  "contrast_column": "condition",
+  "contrast_numerator": "treatment",
+  "contrast_denominator": "control"
+}

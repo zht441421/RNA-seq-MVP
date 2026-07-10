@@ -1,0 +1,7 @@
+{
+  "task_type": "bulk_rnaseq",
+  "parameters": {
+    "client": "coze_contract_example",
+    "phase": "6.1"
+  }
+}

@@ -74,6 +74,18 @@ passes. External Coze API calls and frontend code are not included yet. See
 `docs/phase-5-completion-baseline.md` and
 `docs/phase-5-mvp-integration-checklist.md`.
 
+## Phase 6.1 Coze/API Deployment Preparation
+
+Phase 6.1 keeps runtime behavior unchanged and prepares the backend for future
+Coze/API deployment at the contract and documentation level. Real Coze
+plugin/API publishing and public deployment are not implemented yet.
+
+Local backend startup is documented in
+`docs/phase-6-1-api-deployment-contract.md`, and machine-readable example
+payloads are available under `docs/examples/coze/`. The Coze-facing endpoint
+sequence and response boundaries are documented in
+`docs/phase-6-1-coze-api-contract.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

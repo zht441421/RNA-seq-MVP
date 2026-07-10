@@ -1,0 +1,51 @@
+{
+  "task_id": "task_0001",
+  "status": "run_placeholder_ready",
+  "analysis_method": "minimal_cpm_log2fc",
+  "formal_de_method": null,
+  "statistical_test_performed": false,
+  "pvalue_available": false,
+  "adjusted_pvalue_available": false,
+  "summary_message": "Minimal CPM/log2FC output is exploratory ranking only, not formal differential expression statistics.",
+  "result_files": [
+    {
+      "artifact_name": "report.md",
+      "artifact_type": "minimal_analysis_report",
+      "description": "Generated report describing the minimal Bulk RNA-seq MVP analysis and limitations.",
+      "download_url": "/task/task_0001/artifacts/report.md/download",
+      "available": true
+    },
+    {
+      "artifact_name": "differential_expression_results.csv",
+      "artifact_type": "preliminary_log2fc_ranking",
+      "description": "Preliminary CPM/log2FC ranking output; not formal differential expression statistics.",
+      "download_url": "/task/task_0001/artifacts/differential_expression_results.csv/download",
+      "available": true
+    }
+  ],
+  "download_links": {
+    "report.md": "/task/task_0001/artifacts/report.md/download",
+    "differential_expression_results.csv": "/task/task_0001/artifacts/differential_expression_results.csv/download"
+  },
+  "registered_inputs": {
+    "metadata": "rnaseq_minimal/metadata.csv",
+    "count_matrix": "rnaseq_minimal/counts.csv"
+  },
+  "contrast": {
+    "contrast_column": "condition",
+    "contrast_numerator": "treatment",
+    "contrast_denominator": "control",
+    "direction": "treatment_vs_control",
+    "contrast_source": "explicit",
+    "inferred": false
+  },
+  "positive_log2fc_interpretation": "Higher in treatment relative to control",
+  "negative_log2fc_interpretation": "Lower in treatment relative to control",
+  "warnings": [],
+  "limitations": [
+    "No p-values are available for minimal_cpm_log2fc.",
+    "No adjusted p-values are available for minimal_cpm_log2fc.",
+    "No GO/KEGG/GSEA enrichment analysis was performed."
+  ],
+  "safe_to_present": true
+}

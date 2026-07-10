@@ -1,0 +1,8 @@
+{
+  "method": "GET",
+  "endpoint": "/task/task_0001/artifacts/report.md/download",
+  "artifact_name": "report.md",
+  "download_url": "/task/task_0001/artifacts/report.md/download",
+  "response_media_type": "text/markdown",
+  "local_path_exposed": false
+}
