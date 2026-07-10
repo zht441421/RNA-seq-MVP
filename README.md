@@ -107,6 +107,17 @@ contract. The runner also performs the existing plan and QC lifecycle
 preparation calls before the run. See
 `docs/phase-6-3-local-api-smoke-test.md`.
 
+## Phase 6.4 Deployment Runbook And Operator Checklist
+
+Phase 6.4 makes deployment/operator documentation available for launch,
+verification, reverse-proxy safety, troubleshooting, shutdown, and rollback.
+The local HTTP smoke test remains the recommended launch verification:
+`python scripts\run_phase_6_3_local_api_smoke_test.py`. Public deployment and
+real Coze publication are still not included, and runtime behavior and API
+response shapes remain unchanged. See
+`docs/phase-6-4-deployment-runbook.md` and
+`docs/phase-6-4-operator-checklist.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
