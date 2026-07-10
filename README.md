@@ -94,6 +94,19 @@ strategy in `docs/phase-6-2-coze-plugin-manifest-preparation.md`. These files
 are preparation artifacts only: no real Coze publication, no public deployment,
 and no runtime behavior changes are included.
 
+## Phase 6.3 Local API Smoke Test
+
+Phase 6.3 adds `python scripts\run_phase_6_3_local_api_smoke_test.py`, which
+starts the FastAPI app with Uvicorn on `127.0.0.1` and validates the prepared
+Coze/plugin-facing operations through real local HTTP requests. It uses the
+bundled minimal RNA-seq demo data, `minimal_cpm_log2fc`, and an explicit
+`treatment`-versus-`control` contrast, then verifies status, artifacts,
+`coze-summary`, downloads, and public-response safety. It makes no real Coze API
+call, requires no public deployment, and does not change the existing API
+contract. The runner also performs the existing plan and QC lifecycle
+preparation calls before the run. See
+`docs/phase-6-3-local-api-smoke-test.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
