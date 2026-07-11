@@ -160,6 +160,15 @@ documented without unsafe application-level cancellation. There is no rate
 limiting yet, public deployment, or real Coze publication. See
 `docs/phase-7-3-request-limits-timeout-hardening.md`.
 
+## Phase 7.4 Optional Rate Limiting Scaffold
+
+Phase 7.4 adds lightweight in-memory abuse protection that is disabled by
+default. Set `RATE_LIMIT_ENABLED=true` to enable the default IP-scoped limit of
+60 requests per 60 seconds; health, documentation, and OpenAPI paths are exempt.
+The scaffold adds no external infrastructure and is intended to be replaced by
+Redis or gateway throttling for multi-instance production use. See
+`docs/phase-7-4-rate-limiting-scaffold.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

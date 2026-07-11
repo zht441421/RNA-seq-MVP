@@ -11,6 +11,7 @@ API_KEY_HEADER_DEFAULT = "X-Bioinfo-API-Key"
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _FALSE_VALUES = frozenset({"", "0", "false", "no", "off"})
 _HTTP_HEADER_NAME = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+_DEFAULT_RATE_LIMIT_EXEMPT_PATHS = ("/health", "/docs", "/openapi.json")
 
 
 def _parse_disabled_or_positive_int(value: str | None) -> int:
@@ -57,6 +58,49 @@ def get_request_hardening_settings() -> RequestHardeningSettings:
         max_count_matrix_bytes=_parse_disabled_or_positive_int(
             os.getenv("BIOINFO_MAX_COUNT_MATRIX_BYTES")
         ),
+    )
+
+
+class RateLimitSettings(BaseModel):
+    enabled: bool = False
+    requests: int = 60
+    window_seconds: int = 60
+    scope: str = "ip"
+    exempt_paths: tuple[str, ...] = _DEFAULT_RATE_LIMIT_EXEMPT_PATHS
+
+
+def _parse_positive_int(value: str | None, default: int) -> int:
+    normalized = "" if value is None else value.strip()
+    if not normalized:
+        return default
+    try:
+        parsed = int(normalized)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else default
+
+
+def get_rate_limit_settings() -> RateLimitSettings:
+    enabled = _parse_required_api_key(os.getenv("RATE_LIMIT_ENABLED"))
+    scope = os.getenv("RATE_LIMIT_SCOPE", "").strip().lower() or "ip"
+    if scope != "ip":
+        raise ValueError("invalid rate limiting configuration")
+
+    configured_paths = os.getenv("RATE_LIMIT_EXEMPT_PATHS")
+    exempt_paths = _DEFAULT_RATE_LIMIT_EXEMPT_PATHS
+    if configured_paths is not None:
+        exempt_paths = tuple(
+            path.strip() for path in configured_paths.split(",") if path.strip()
+        )
+
+    return RateLimitSettings(
+        enabled=enabled,
+        requests=_parse_positive_int(os.getenv("RATE_LIMIT_REQUESTS"), 60),
+        window_seconds=_parse_positive_int(
+            os.getenv("RATE_LIMIT_WINDOW_SECONDS"), 60
+        ),
+        scope=scope,
+        exempt_paths=exempt_paths,
     )
 
 

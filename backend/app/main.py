@@ -15,6 +15,7 @@ from backend.app.api.routes_ui import router as ui_router
 from backend.app.api.task_routes import router as task_router
 from backend.app.config import get_api_key_auth_settings
 from backend.app.config import get_request_hardening_settings
+from backend.app.middleware.rate_limit import InMemoryRateLimitMiddleware
 
 
 REQUEST_TOO_LARGE_RESPONSE = {
@@ -98,6 +99,9 @@ app.include_router(task_router)
 # Added before the decorator middleware so API-key authentication remains the
 # outer layer and has deterministic precedence for protected task endpoints.
 app.add_middleware(RequestBodyLimitMiddleware)
+# Authentication remains outermost; rate limiting applies only after a request
+# has passed the optional API-key check and before its body reaches a route.
+app.add_middleware(InMemoryRateLimitMiddleware)
 
 
 @app.middleware("http")
