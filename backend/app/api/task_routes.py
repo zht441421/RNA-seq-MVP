@@ -925,7 +925,13 @@ def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
     )
 
 
-@router.get("/{task_id}/artifacts/{artifact_name:path}/download")
+@router.get(
+    "/{task_id}/artifacts/{artifact_name:path}/download",
+    operation_id="coze_download_task_artifact",
+    summary="Download task artifact",
+    description="Download one safe task-scoped artifact by a previously listed name.",
+    openapi_extra={"x-coze-operation": "download_artifact"},
+)
 def download_task_artifact(task_id: str, artifact_name: str) -> FileResponse:
     try:
         payload = get_artifact_download_payload(task_id, artifact_name)

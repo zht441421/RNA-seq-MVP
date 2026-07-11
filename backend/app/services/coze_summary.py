@@ -102,7 +102,38 @@ def build_coze_task_summary(task_id: str) -> dict:
         )
 
     payload["registered_inputs"] = safe_registered_inputs_summary(task.task_id)
+    payload["reliability_information"] = _reliability_information(
+        payload, interpretation, minimal_execution
+    )
+    payload["artifact_references"] = list(payload.get("result_files") or [])
+    payload["sanitized_messages"] = {
+        "summary": str(payload.get("summary_message") or ""),
+        "warnings": list(payload.get("warnings") or []),
+        "limitations": list(payload.get("limitations") or []),
+    }
     return sanitize_summary_payload(payload)
+
+
+def _reliability_information(payload: dict, *sources: dict | None) -> dict:
+    grade = payload.get("reliability_grade")
+    for source in sources:
+        if grade is not None:
+            break
+        source_mapping = _safe_mapping(source)
+        grade = source_mapping.get("reliability_grade")
+        if grade is None:
+            grade = _safe_mapping(source_mapping.get("summary")).get(
+                "reliability_grade"
+            )
+    return {
+        "available": grade is not None,
+        "grade": grade,
+        "strong_conclusion_allowed": bool(grade in {"A", "B"}) if grade is not None else False,
+        "guidance": (
+            "Use reliability information together with warnings and limitations; "
+            "do not generate unsupported scientific conclusions."
+        ),
+    }
 
 
 def _appears_deseq2(artifacts: list[dict]) -> bool:

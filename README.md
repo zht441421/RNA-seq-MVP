@@ -198,6 +198,22 @@ and gateway controls, configure a trusted base URL, import the reviewed schema,
 and complete end-to-end tests. See
 `docs/phase-8-1-coze-integration-contract.md`.
 
+## Phase 8.2 Coze Tool Interface Preparation
+
+Phase 8.2 defines stable agent-facing contracts for task creation, input
+validation, analysis start, status polling, safe summary retrieval, artifact
+discovery, and task-scoped download. The machine-readable manifest is
+`docs/coze-tool-manifest.json`, and the invocation lifecycle and failure rules
+are documented in `docs/phase-8-2-coze-tool-interface.md`. Existing task APIs,
+authentication, request controls, observability, audit tracing, and scientific
+execution behavior remain in force.
+
+This remains preparation only: there is no Coze deployment/plugin publication,
+public base URL, hosted upload flow, or production gateway. A future Coze phase
+must deploy behind TLS and enabled authentication, import the reviewed tool
+manifest, configure credentials outside prompts, and complete end-to-end tests
+before publication.
+
 Phase 1 has been validated and tagged as:
 
 ```text
