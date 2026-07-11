@@ -214,6 +214,20 @@ must deploy behind TLS and enabled authentication, import the reviewed tool
 manifest, configure credentials outside prompts, and complete end-to-end tests
 before publication.
 
+## Phase 8.3 Local Agent Workflow Simulation
+
+Phase 8.3 adds a deterministic local agent simulator that selects and invokes
+the Phase 8.2 manifest tools through the existing FastAPI contracts. It tests
+task creation, safe input registration and validation, lifecycle preparation,
+analysis start, bounded status polling, safe summary retrieval, artifact
+listing, and task-scoped download without implementing an LLM or deploying to
+Coze. See `docs/phase-8-3-local-agent-simulation.md`.
+
+Run `python scripts\verify_phase_8_3_local_agent_simulation.py` to validate the
+simulator, manifest/OpenAPI compatibility, and full test suite. This remains a
+local integration harness: no plugin publication, public endpoint, cloud
+service, workflow engine, or scientific execution change is included.
+
 Phase 1 has been validated and tagged as:
 
 ```text
