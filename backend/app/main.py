@@ -16,6 +16,7 @@ from backend.app.api.task_routes import router as task_router
 from backend.app.config import get_api_key_auth_settings
 from backend.app.config import get_request_hardening_settings
 from backend.app.middleware.rate_limit import InMemoryRateLimitMiddleware
+from backend.app.middleware.observability import RequestObservabilityMiddleware
 
 
 REQUEST_TOO_LARGE_RESPONSE = {
@@ -144,5 +145,11 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "service": "bioinformatics-agent-backend",
+        "version": app.version,
         "phase": "phase-2-api-skeleton",
     }
+
+
+# Outermost middleware: correlation covers authentication, rate-limit,
+# request-size, and route responses without changing their precedence.
+app.add_middleware(RequestObservabilityMiddleware)

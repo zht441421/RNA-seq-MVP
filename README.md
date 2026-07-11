@@ -169,6 +169,15 @@ The scaffold adds no external infrastructure and is intended to be replaced by
 Redis or gateway throttling for multi-instance production use. See
 `docs/phase-7-4-rate-limiting-scaffold.md`.
 
+## Phase 7.5 Deployment Observability Scaffold
+
+Phase 7.5 adds standard-library structured request logging and generates an
+opaque correlation ID for each HTTP request. Responses include `X-Request-ID`,
+including authentication, rate-limit, request-size, and sanitized unexpected
+error responses. The health response also includes the application version.
+No metrics server, tracing system, or external monitoring infrastructure is
+introduced. See `docs/phase-7-5-observability-scaffold.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
