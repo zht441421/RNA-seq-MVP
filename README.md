@@ -178,6 +178,15 @@ error responses. The health response also includes the application version.
 No metrics server, tracing system, or external monitoring infrastructure is
 introduced. See `docs/phase-7-5-observability-scaffold.md`.
 
+## Phase 7.6 Audit and Execution Trace Hardening Scaffold
+
+Phase 7.6 adds internal task execution traces linked to request IDs and existing
+lifecycle audit metadata. Traces record safe timestamps, duration, status,
+reproducibility version identifiers, and a hashed configuration snapshot ID.
+Failures retain only sanitized reasons. No scientific computation, public
+response model, or route changes. See
+`docs/phase-7-6-audit-execution-trace-scaffold.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

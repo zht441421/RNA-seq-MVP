@@ -56,6 +56,10 @@ from backend.app.services.execution_adapter import (
     execute_task_minimal_rnaseq,
     execute_task_placeholder,
 )
+from backend.app.services.execution_trace import begin_execution_trace
+from backend.app.services.execution_trace import complete_execution_trace
+from backend.app.services.execution_trace import fail_execution_trace
+from backend.app.services.execution_trace import trace_metadata
 from backend.app.services.rnaseq_minimal import (
     MinimalRNASeqValidationError,
     RNASeqMethodContractError,
@@ -97,6 +101,7 @@ def _update_registry_status_or_404(
     status: TaskStatus,
     event_type: str,
     message: str,
+    metadata: dict | None = None,
 ) -> None:
     try:
         task = update_task_status(
@@ -104,6 +109,7 @@ def _update_registry_status_or_404(
             status=status,
             event_type=event_type,
             message=message,
+            metadata=metadata,
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -276,15 +282,29 @@ def _ensure_can_mark_run_ready(task: TaskRecord) -> None:
 def _append_minimal_validation_failed_event(
     task_id: str,
     exc: MinimalRNASeqValidationError,
+    trace: object | None = None,
 ) -> None:
+    metadata = {
+        "error_code": exc.error_code,
+        "error_count": len(exc.errors),
+    }
+    if trace is not None:
+        metadata["execution_trace"] = trace_metadata(trace)
     append_lifecycle_event(
         task_id=task_id,
         event_type="minimal_analysis_validation_failed",
         message="Minimal real Bulk RNA-seq input validation failed.",
-        metadata={
-            "error_code": exc.error_code,
-            "error_count": len(exc.errors),
-        },
+        metadata=metadata,
+    )
+
+
+def _record_execution_failure(task_id: str, trace, reason: str) -> None:
+    failed_trace = fail_execution_trace(trace, reason)
+    append_lifecycle_event(
+        task_id=task_id,
+        event_type="analysis_failed",
+        message="Analysis execution failed. See sanitized trace metadata.",
+        metadata={"execution_trace": trace_metadata(failed_trace)},
     )
 
 
@@ -522,9 +542,18 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
     _validate_run_mode_request(request)
     is_deseq2_run = _is_deseq2_run_request(request)
     is_minimal_real_run = _is_minimal_real_run_request(request) and not is_deseq2_run
+    _ensure_can_mark_run_ready(task)
+    execution_trace = begin_execution_trace(
+        request.task_id,
+        "analysis_execution",
+        {
+            "execution_mode": request.execution_mode or "placeholder",
+            "analysis_method": request.analysis_method or "unspecified",
+            "formal_de_method": request.formal_de_method or "unspecified",
+        },
+    )
 
     if is_deseq2_run:
-        _ensure_can_mark_run_ready(task)
         try:
             execution_result = execute_task_deseq2(
                 task_id=request.task_id,
@@ -537,12 +566,22 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 contrast_denominator=request.contrast_denominator,
             )
         except MinimalRNASeqValidationError as exc:
+            _record_execution_failure(
+                request.task_id, execution_trace, "input_validation_failed"
+            )
             raise HTTPException(status_code=422, detail=exc.to_detail()) from exc
         except ContrastValidationError as exc:
+            _record_execution_failure(
+                request.task_id, execution_trace, "contrast_validation_failed"
+            )
             raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
         except Deseq2ExecutionError as exc:
+            _record_execution_failure(
+                request.task_id, execution_trace, "formal_execution_failed"
+            )
             raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
 
+        complete_execution_trace(execution_trace)
         _update_registry_status_or_404(
             task_id=request.task_id,
             status=TaskStatus.RUN_PLACEHOLDER_READY,
@@ -586,7 +625,6 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
         )
 
     if is_minimal_real_run:
-        _ensure_can_mark_run_ready(task)
         try:
             execution_result = execute_task_minimal_rnaseq(
                 task_id=request.task_id,
@@ -600,16 +638,26 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
                 contrast_denominator=request.contrast_denominator,
             )
         except MinimalRNASeqValidationError as exc:
-            _append_minimal_validation_failed_event(request.task_id, exc)
+            fail_execution_trace(execution_trace, "input_validation_failed")
+            _append_minimal_validation_failed_event(
+                request.task_id, exc, execution_trace
+            )
             raise HTTPException(status_code=422, detail=exc.to_detail()) from exc
         except ContrastValidationError as exc:
+            _record_execution_failure(
+                request.task_id, execution_trace, "contrast_validation_failed"
+            )
             raise HTTPException(status_code=exc.status_code, detail=exc.to_detail()) from exc
         except ValueError as exc:
+            _record_execution_failure(
+                request.task_id, execution_trace, "execution_failed"
+            )
             raise HTTPException(
                 status_code=400,
                 detail="Minimal RNA-seq execution failed.",
             ) from exc
 
+        complete_execution_trace(execution_trace)
         _update_registry_status_or_404(
             task_id=request.task_id,
             status=TaskStatus.RUN_PLACEHOLDER_READY,
@@ -646,6 +694,22 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             limitations=execution_result.limitations,
         )
 
+    try:
+        execution_result = execute_task_placeholder(
+            task_id=request.task_id,
+            registry_record=task,
+            project_name=request.project_name,
+            omics_type=request.omics_type,
+        )
+    except ValueError as exc:
+        _record_execution_failure(
+            request.task_id, execution_trace, "execution_failed"
+        )
+        raise HTTPException(
+            status_code=400, detail="Placeholder execution failed."
+        ) from exc
+
+    complete_execution_trace(execution_trace)
     _update_registry_status_or_404(
         task_id=request.task_id,
         status=TaskStatus.RUN_PLACEHOLDER_READY,
@@ -655,16 +719,6 @@ def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
             "No real RNA-seq analysis was performed."
         ),
     )
-    try:
-        execution_result = execute_task_placeholder(
-            task_id=request.task_id,
-            registry_record=task,
-            project_name=request.project_name,
-            omics_type=request.omics_type,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
     artifacts = _run_artifacts(execution_result)
     save_task_artifacts(request.task_id, artifacts)
     return TaskRunResponse(

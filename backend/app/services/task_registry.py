@@ -8,6 +8,9 @@ from backend.app.models.task import (
     TaskStatus,
 )
 from backend.app.services.task_store import get_task_store
+from backend.app.services.execution_trace import begin_execution_trace
+from backend.app.services.execution_trace import complete_execution_trace
+from backend.app.services.execution_trace import reset_execution_traces
 
 
 _TASKS: dict[str, TaskRecord] = {}
@@ -53,6 +56,16 @@ def create_task(request: TaskCreateRequest | None = None) -> TaskRecord:
     task_number = _NEXT_TASK_NUMBER
     task_id = _next_task_id()
     timestamp = _timestamp_for_task(task_number)
+    creation_trace = complete_execution_trace(
+        begin_execution_trace(
+            task_id,
+            "task_created",
+            {
+                "task_type": request.task_type,
+                "omics_type": request.parameters.get("omics_type", "unspecified"),
+            },
+        )
+    )
 
     task = TaskRecord(
         task_id=task_id,
@@ -211,6 +224,7 @@ def reset_registry(*, clear_store: bool = True) -> None:
     _TASKS.clear()
     if clear_store:
         get_task_store().clear()
+    reset_execution_traces()
     _NEXT_TASK_NUMBER = 1
 
 
