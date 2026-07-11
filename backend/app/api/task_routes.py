@@ -346,13 +346,27 @@ def _apply_registered_inputs_to_run_request(request: TaskRunRequest) -> TaskRunR
     )
 
 
-@router.post("/create", response_model=TaskResponse)
+@router.post(
+    "/create",
+    response_model=TaskResponse,
+    operation_id="coze_create_analysis_task",
+    summary="Create analysis task",
+    description="Create a task record and return its stable task identifier.",
+    openapi_extra={"x-coze-operation": "create_analysis_task"},
+)
 def create_task_endpoint(request: TaskCreateRequest | None = None) -> TaskResponse:
     task = create_task(request or TaskCreateRequest())
     return TaskResponse(task_id=task.task_id, status=task.status, message=task.message)
 
 
-@router.post("/validate-inputs", response_model=TaskValidateInputsResponse)
+@router.post(
+    "/validate-inputs",
+    response_model=TaskValidateInputsResponse,
+    operation_id="coze_validate_analysis_inputs",
+    summary="Validate analysis inputs",
+    description="Validate metadata and count-matrix inputs without running analysis.",
+    openapi_extra={"x-coze-operation": "validate_input"},
+)
 def validate_task_inputs(request: TaskValidateInputsRequest) -> TaskValidateInputsResponse:
     validation = validate_rnaseq_input_files(
         metadata_file=request.metadata_file,
@@ -391,7 +405,16 @@ def get_formal_de_preflight() -> FormalDEPreflightResponse:
     )
 
 
-@router.get("/{task_id}/coze-summary")
+@router.get(
+    "/{task_id}/coze-summary",
+    operation_id="coze_retrieve_result_summary",
+    summary="Retrieve safe result summary",
+    description=(
+        "Return a concise task-scoped result and artifact summary with explicit "
+        "scientific limitations and relative download links."
+    ),
+    openapi_extra={"x-coze-operation": "retrieve_summary"},
+)
 def get_task_coze_summary(task_id: str) -> dict:
     try:
         return build_coze_task_summary(task_id)
@@ -399,7 +422,14 @@ def get_task_coze_summary(task_id: str) -> dict:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from None
 
 
-@router.post("/{task_id}/inputs/register", response_model=TaskInputRegistrationResponse)
+@router.post(
+    "/{task_id}/inputs/register",
+    response_model=TaskInputRegistrationResponse,
+    operation_id="coze_register_analysis_input",
+    summary="Register task input metadata",
+    description="Register one task-scoped input using a safe relative source path.",
+    openapi_extra={"x-coze-operation": "submit_input_metadata"},
+)
 def register_task_input_endpoint(
     task_id: str,
     request: TaskInputRegisterRequest,
@@ -535,7 +565,14 @@ def create_qc_plan(request: QCRequest) -> QCResponse:
     )
 
 
-@router.post("/run", response_model=TaskRunResponse)
+@router.post(
+    "/run",
+    response_model=TaskRunResponse,
+    operation_id="coze_run_analysis_task",
+    summary="Run analysis task",
+    description="Run the requested task workflow after required preparation and validation.",
+    openapi_extra={"x-coze-operation": "run_analysis"},
+)
 def run_task_placeholder(request: TaskRunRequest) -> TaskRunResponse:
     task = _get_registry_task_or_404(request.task_id)
     request = _apply_registered_inputs_to_run_request(request)
@@ -812,7 +849,14 @@ def get_task_report(task_id: str) -> TaskReportResponse:
     )
 
 
-@router.get("/{task_id}/artifacts", response_model=TaskArtifactsResponse)
+@router.get(
+    "/{task_id}/artifacts",
+    response_model=TaskArtifactsResponse,
+    operation_id="coze_list_task_artifacts",
+    summary="List task artifacts",
+    description="List task-scoped artifact metadata and safe relative references.",
+    openapi_extra={"x-coze-operation": "retrieve_artifacts"},
+)
 def get_task_artifacts(task_id: str) -> TaskArtifactsResponse:
     task = _get_registry_task_or_404(task_id)
     if task.status == TaskStatus.REPORT_PLACEHOLDER_READY:
@@ -923,7 +967,14 @@ def get_task_audit(task_id: str) -> TaskAuditResponse:
     )
 
 
-@router.get("/{task_id}/status", response_model=TaskResponse)
+@router.get(
+    "/{task_id}/status",
+    response_model=TaskResponse,
+    operation_id="coze_query_task_status",
+    summary="Query task status",
+    description="Return the current task lifecycle status and concise status message.",
+    openapi_extra={"x-coze-operation": "query_task_status"},
+)
 def get_task_status(task_id: str) -> TaskResponse:
     task = _get_registry_task_or_404(task_id)
     return TaskResponse(task_id=task.task_id, status=task.status, message=task.message)

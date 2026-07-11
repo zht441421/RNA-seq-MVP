@@ -1,0 +1,86 @@
+{
+  "contract_name": "bioinformatics_task_api_coze_preparation",
+  "contract_version": "8.1-draft",
+  "status": "preparation_only",
+  "base_path": "/",
+  "authentication": {
+    "mode": "optional_api_key",
+    "header_default": "X-Bioinfo-API-Key",
+    "deployment_requirement": "Enable and provision authentication before external exposure."
+  },
+  "operations": [
+    {
+      "name": "create_analysis_task",
+      "operation_id": "coze_create_analysis_task",
+      "method": "POST",
+      "path": "/task/create",
+      "purpose": "Create an analysis task and return task_id."
+    },
+    {
+      "name": "submit_input_metadata",
+      "operation_id": "coze_register_analysis_input",
+      "method": "POST",
+      "path": "/task/{task_id}/inputs/register",
+      "purpose": "Register metadata or count-matrix input by safe relative path."
+    },
+    {
+      "name": "validate_input",
+      "operation_id": "coze_validate_analysis_inputs",
+      "method": "POST",
+      "path": "/task/validate-inputs",
+      "purpose": "Validate input structure without starting analysis."
+    },
+    {
+      "name": "run_analysis",
+      "operation_id": "coze_run_analysis_task",
+      "method": "POST",
+      "path": "/task/run",
+      "purpose": "Run the explicitly selected workflow after preparation."
+    },
+    {
+      "name": "query_task_status",
+      "operation_id": "coze_query_task_status",
+      "method": "GET",
+      "path": "/task/{task_id}/status",
+      "purpose": "Read concise lifecycle status.",
+      "projection": ["task_id", "status", "message"]
+    },
+    {
+      "name": "retrieve_artifacts",
+      "operation_id": "coze_list_task_artifacts",
+      "method": "GET",
+      "path": "/task/{task_id}/artifacts",
+      "purpose": "List task-scoped artifact metadata before secure download.",
+      "projection": ["task_id", "status", "artifacts", "limitations"]
+    },
+    {
+      "name": "retrieve_summary",
+      "operation_id": "coze_retrieve_result_summary",
+      "method": "GET",
+      "path": "/task/{task_id}/coze-summary",
+      "purpose": "Retrieve a concise safe result summary without generating conclusions.",
+      "projection": ["task_id", "status", "summary_message", "result_files", "download_links", "warnings", "limitations", "safe_to_present"]
+    }
+  ],
+  "artifact_download": {
+    "method": "GET",
+    "path": "/task/{task_id}/artifacts/{artifact_name}/download",
+    "requirements": [
+      "Use only artifact names returned for the same task.",
+      "Do not construct filesystem paths.",
+      "Treat 400 and 404 responses as non-downloadable artifacts."
+    ]
+  },
+  "error_contract": {
+    "transport": "HTTP status plus sanitized JSON detail",
+    "correlation_header": "X-Request-ID",
+    "retryable_statuses": [429, 503],
+    "non_retryable_statuses": [400, 401, 404, 409, 413, 422]
+  },
+  "limitations": [
+    "No Coze plugin is published by this contract.",
+    "No public deployment or frontend is included.",
+    "The summary layer does not create scientific conclusions.",
+    "Relative API paths require an externally configured trusted base URL."
+  ]
+}

@@ -187,6 +187,17 @@ Failures retain only sanitized reasons. No scientific computation, public
 response model, or route changes. See
 `docs/phase-7-6-audit-execution-trace-scaffold.md`.
 
+## Phase 8.1 Coze Integration Contract Preparation
+
+Phase 8.1 marks the task API as contract-prepared for a future Coze adapter.
+It adds a reviewed machine-readable operation manifest and stable OpenAPI names
+and descriptions for task creation, input registration/validation, execution,
+status, artifacts, and safe summaries. No Coze plugin is published and no
+public deployment is included. A future phase must deploy behind authentication
+and gateway controls, configure a trusted base URL, import the reviewed schema,
+and complete end-to-end tests. See
+`docs/phase-8-1-coze-integration-contract.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text
