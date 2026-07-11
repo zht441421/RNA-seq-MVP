@@ -150,6 +150,16 @@ the request header defaults to `X-Bioinfo-API-Key` and can be overridden with
 load-balancer and schema access. Public deployment and real Coze publication
 are still not included. See `docs/phase-7-2-api-key-auth-scaffold.md`.
 
+## Phase 7.3 Request Limits and Timeout Hardening
+
+Phase 7.3 provides an optional request-body limit, disabled by default so
+current behavior is preserved. Set `BIOINFO_MAX_REQUEST_BYTES` to a positive
+integer to enable it; oversized requests return a sanitized HTTP 413 response.
+The timeout strategy and `BIOINFO_REQUEST_TIMEOUT_SECONDS` configuration are
+documented without unsafe application-level cancellation. There is no rate
+limiting yet, public deployment, or real Coze publication. See
+`docs/phase-7-3-request-limits-timeout-hardening.md`.
+
 Phase 1 has been validated and tagged as:
 
 ```text

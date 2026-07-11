@@ -1,4 +1,5 @@
 from functools import lru_cache
+import math
 import os
 from pathlib import Path
 import re
@@ -10,6 +11,53 @@ API_KEY_HEADER_DEFAULT = "X-Bioinfo-API-Key"
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _FALSE_VALUES = frozenset({"", "0", "false", "no", "off"})
 _HTTP_HEADER_NAME = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+
+def _parse_disabled_or_positive_int(value: str | None) -> int:
+    """Parse a byte limit without echoing invalid configuration values."""
+    normalized = "" if value is None else value.strip()
+    if not normalized:
+        return 0
+    try:
+        parsed = int(normalized)
+    except ValueError:
+        return 0
+    return parsed if parsed > 0 else 0
+
+
+def _parse_disabled_or_positive_number(value: str | None) -> float:
+    normalized = "" if value is None else value.strip()
+    if not normalized:
+        return 0.0
+    try:
+        parsed = float(normalized)
+    except ValueError:
+        return 0.0
+    return parsed if math.isfinite(parsed) and parsed > 0 else 0.0
+
+
+class RequestHardeningSettings(BaseModel):
+    max_request_bytes: int = 0
+    request_timeout_seconds: float = 0.0
+    max_metadata_bytes: int = 0
+    max_count_matrix_bytes: int = 0
+
+
+def get_request_hardening_settings() -> RequestHardeningSettings:
+    return RequestHardeningSettings(
+        max_request_bytes=_parse_disabled_or_positive_int(
+            os.getenv("BIOINFO_MAX_REQUEST_BYTES")
+        ),
+        request_timeout_seconds=_parse_disabled_or_positive_number(
+            os.getenv("BIOINFO_REQUEST_TIMEOUT_SECONDS")
+        ),
+        max_metadata_bytes=_parse_disabled_or_positive_int(
+            os.getenv("BIOINFO_MAX_METADATA_BYTES")
+        ),
+        max_count_matrix_bytes=_parse_disabled_or_positive_int(
+            os.getenv("BIOINFO_MAX_COUNT_MATRIX_BYTES")
+        ),
+    )
 
 
 def _parse_required_api_key(value: str | None) -> bool:
