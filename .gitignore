@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 .env
+.staging-secrets/
+.staging-runtime/
 
 .storage/
 acceptance_reports/

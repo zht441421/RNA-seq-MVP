@@ -1,0 +1,13 @@
+[req]
+distinguished_name = subject
+x509_extensions = staging_extensions
+prompt = no
+
+[subject]
+CN = localhost
+
+[staging_extensions]
+subjectAltName = DNS:localhost,IP:127.0.0.1
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature,keyEncipherment
+extendedKeyUsage = serverAuth

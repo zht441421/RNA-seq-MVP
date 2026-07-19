@@ -251,9 +251,34 @@ created no production endpoint, and stored no real secret. See
 `docs/phase-8-4-reference-dataset-deployment-readiness.md` and
 `docs/reference-datasets/README.md`.
 
-## Roadmap after Phase 8.4
+## Phase 8.5 Protected Local Staging Deployment
 
-- Phase 8.5 Protected Staging Deployment
+Phase 8.5 adds a local-only container staging boundary for the existing API: a
+non-root, read-only API container, an internal Compose network, persistent task
+and artifact volumes, runtime API-key injection, and a loopback-only TLS reverse
+proxy. It does not deploy remotely, publish a Coze plugin, expose a production
+endpoint, or change RNA-seq/DESeq2 behavior.
+
+Prepare and validate the local stack with:
+
+```text
+python scripts\prepare_phase_8_5_local_staging.py
+docker compose -f docker-compose.staging.yml up --build -d
+python scripts\smoke_phase_8_5_protected_staging.py
+python scripts\verify_phase_8_5_protected_staging.py
+docker compose -f docker-compose.staging.yml down
+```
+
+The self-signed certificate and generated API key remain in the ignored
+`.staging-secrets` directory. See
+`docs/phase-8-5-protected-staging-deployment.md` for trust boundaries, restart
+and persistence behavior, secret rotation, rollback, cleanup, and limitations.
+The normal `down` command preserves named volumes; destructive `down -v` is a
+deliberate operator-only cleanup after retention requirements are satisfied.
+No remote deployment, Coze integration, or production publication was performed.
+
+## Roadmap after Phase 8.5
+
 - Phase 8.6 Reference Dataset Validation
 - Phase 8.7 Real Coze End-to-End Integration
 - Phase 8.8 Scientific Reliability Evaluation
