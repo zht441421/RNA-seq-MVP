@@ -228,6 +228,38 @@ simulator, manifest/OpenAPI compatibility, and full test suite. This remains a
 local integration harness: no plugin publication, public endpoint, cloud
 service, workflow engine, or scientific execution change is included.
 
+## Phase 8.4 Reference Dataset and Deployment Readiness
+
+Phase 8.4 adds a versioned reference-dataset classification and manifest, an
+initial checksum-protected synthetic workflow fixture, and behavior-oriented
+Golden Result checks. Golden Results validate stable system behavior and
+scientific boundaries rather than biological truth or fragile byte-for-byte
+numeric output. The initial fixture remains non-scientific test data: the
+`minimal_cpm_log2fc` workflow is exploratory and provides no p-values or
+adjusted p-values.
+
+Run the offline gate with:
+
+```text
+python scripts\verify_phase_8_4_reference_dataset_readiness.py
+```
+
+The gate validates fixture checksums, Golden Results, all seven Coze
+tool/OpenAPI mappings, unique operation IDs, safe deployment materials, and the
+full pytest suite. Phase 8.4 performed no Coze deployment or publication,
+created no production endpoint, and stored no real secret. See
+`docs/phase-8-4-reference-dataset-deployment-readiness.md` and
+`docs/reference-datasets/README.md`.
+
+## Roadmap after Phase 8.4
+
+- Phase 8.5 Protected Staging Deployment
+- Phase 8.6 Reference Dataset Validation
+- Phase 8.7 Real Coze End-to-End Integration
+- Phase 8.8 Scientific Reliability Evaluation
+- Phase 8.9 Limited Pilot Release
+- Phase 9 Analysis Capability Expansion
+
 Phase 1 has been validated and tagged as:
 
 ```text

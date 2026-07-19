@@ -1,0 +1,76 @@
+{
+  "manifest_version": "1.0",
+  "purpose": "Offline reference inputs for stable workflow and deployment-readiness regression checks.",
+  "classification_model": {
+    "workflow_fixture": "Small synthetic or miniature data for workflow behavior checks only.",
+    "reference_dataset": "Versioned data with documented provenance for repeatable technical validation.",
+    "scientific_benchmark_dataset": "Real public data with documented source, license, benchmark purpose, and scientific limitations."
+  },
+  "datasets": [
+    {
+      "dataset_id": "phase-8-4-rnaseq-minimal-synthetic-v1",
+      "dataset_type": "bulk_rnaseq_count_matrix_with_sample_metadata",
+      "classification": "workflow_fixture",
+      "data_nature": "synthetic",
+      "source": {
+        "type": "repository_fixture",
+        "url": null,
+        "accession": null,
+        "description": "Project-authored deterministic miniature fixture."
+      },
+      "usage_terms": "Repository test fixture; workflow verification only. Not scientific evidence.",
+      "expected_files": [
+        {
+          "role": "metadata",
+          "path": "data/demo/rnaseq_minimal/metadata.csv",
+          "sha256": "d5a9f645b21a52827c87d69f6bb8a7c1e06b69199053fa53e0abdba63aff0247"
+        },
+        {
+          "role": "count_matrix",
+          "path": "data/demo/rnaseq_minimal/counts.csv",
+          "sha256": "8d4d9cf36132ccafc515937be69708650a51b7d3e1f20fd75acafa5a8cdcc86e"
+        }
+      ],
+      "metadata_schema": {
+        "format": "csv",
+        "required_columns": ["sample_id", "condition"],
+        "sample_id_column": "sample_id",
+        "group_column": "condition"
+      },
+      "count_matrix_schema": {
+        "format": "csv",
+        "orientation": "genes_by_samples",
+        "gene_id_column": "gene_id",
+        "sample_columns_must_match_metadata": true,
+        "values": "non_negative_integer_counts"
+      },
+      "contrast": {
+        "column": "condition",
+        "numerator": "treatment",
+        "denominator": "control",
+        "direction": "treatment_vs_control"
+      },
+      "expected_sample_count": {
+        "exact": 6
+      },
+      "expected_gene_count": {
+        "min": 10,
+        "max": 10
+      },
+      "intended_validation_purpose": [
+        "Input registration and validation",
+        "Minimal workflow lifecycle regression",
+        "Summary scientific-boundary regression",
+        "Artifact discovery and download-security regression"
+      ],
+      "known_limitations": [
+        "Synthetic values do not represent a biological experiment.",
+        "The fixture is too small for scientific validation or benchmarking.",
+        "The minimal workflow produces exploratory rankings without p-values or adjusted p-values.",
+        "No enrichment, batch correction, or complex design is validated."
+      ],
+      "scientific_validation_suitable": false,
+      "golden_result": "docs/reference-datasets/golden-results/phase-8-4-rnaseq-minimal-synthetic-v1.json"
+    }
+  ]
+}

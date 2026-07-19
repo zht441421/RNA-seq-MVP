@@ -1,0 +1,101 @@
+{
+  "golden_result_version": "1.0",
+  "dataset_id": "phase-8-4-rnaseq-minimal-synthetic-v1",
+  "description": "Stable behavioral expectations for the synthetic minimal RNA-seq workflow fixture.",
+  "comparison_modes": {
+    "exact": "Stable identifiers, booleans, direction, counts, and terminal lifecycle status.",
+    "set_based": "Required artifact categories may be returned in any order with additional categories.",
+    "range_based": "Counts may use documented inclusive minimum and maximum bounds.",
+    "presence_only": "Safety and explanatory fields must exist without byte-for-byte text matching.",
+    "environment_dependent": "DESeq2 execution state depends on real preflight readiness and must never be simulated."
+  },
+  "checks": {
+    "exact": {
+      "analysis_method": "minimal_cpm_log2fc",
+      "comparison_direction": "treatment_vs_control",
+      "input_sample_count": 6,
+      "terminal_task_status": "run_placeholder_ready",
+      "statistical_test_performed": false,
+      "pvalue_available": false,
+      "adjusted_pvalue_available": false,
+      "scientific_conclusion_generated": false
+    },
+    "required_fields": [
+      "reliability_information",
+      "warnings",
+      "limitations",
+      "interpretation_boundary",
+      "summary_fields"
+    ],
+    "accepted_values": {
+      "reliability_information.available": [false, true],
+      "reliability_information.grade": [null, "A", "B", "C", "D"],
+      "reliability_information.strong_conclusion_allowed": [false, true]
+    },
+    "numeric_ranges": {
+      "input_gene_count": {
+        "min": 10,
+        "max": 10
+      }
+    },
+    "required_artifact_categories": [
+      "minimal_run_manifest",
+      "minimal_execution_summary",
+      "minimal_qc_summary",
+      "normalized_counts_cpm",
+      "preliminary_log2fc_ranking",
+      "minimal_analysis_report"
+    ],
+    "forbidden_fields": [
+      "reported_pvalues",
+      "reported_adjusted_pvalues",
+      "enrichment_results"
+    ],
+    "forbidden_claims": [
+      "statistically significant",
+      "significant differential expression",
+      "causes the phenotype",
+      "enrichment analysis completed"
+    ],
+    "environment_dependent": {
+      "deseq2_execution_state": {
+        "environment_key": "deseq2_ready",
+        "when_true": {
+          "accepted_values": ["not_requested", "available_for_separate_validation"]
+        },
+        "when_false": {
+          "accepted_values": ["not_requested", "unavailable"]
+        }
+      }
+    }
+  },
+  "expected_summary_schema_fields": [
+    "task_id",
+    "status",
+    "analysis_method",
+    "statistical_test_performed",
+    "pvalue_available",
+    "adjusted_pvalue_available",
+    "summary_message",
+    "reliability_information",
+    "artifact_references",
+    "warnings",
+    "limitations",
+    "interpretation_boundary",
+    "safe_to_present"
+  ],
+  "deseq2_requirement": {
+    "mode": "environment_dependent",
+    "required_for_this_golden_result": false,
+    "rule": "A successful DESeq2 execution may be asserted only when real preflight and execution succeed."
+  },
+  "scientific_boundaries": {
+    "workflow_classification": "exploratory",
+    "pvalues_expected": false,
+    "adjusted_pvalues_expected": false,
+    "statistical_significance_claims_allowed": false,
+    "biological_causation_claims_allowed": false,
+    "synthetic_fixture_is_scientific_evidence": false,
+    "golden_result_validates": "system_behavior_not_biological_truth"
+  }
+}

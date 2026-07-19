@@ -1,0 +1,37 @@
+{
+  "package_version": "8.4-draft",
+  "status": "preparation_only_not_published",
+  "base_url": {
+    "value": null,
+    "requirement": "Configure one reviewed HTTPS URL in the deployment platform; never embed a private or local URL in this package."
+  },
+  "authentication": {
+    "type": "api_key_header",
+    "header": "X-Bioinfo-API-Key",
+    "credential_source": "coze_secrets_or_equivalent_deployment_secret_store",
+    "credential_in_package": false
+  },
+  "tool_manifest": "docs/coze-tool-manifest.json",
+  "tools": [
+    {"name": "create_analysis_task", "operation_id": "coze_create_analysis_task"},
+    {"name": "validate_input", "operation_id": "coze_validate_analysis_inputs"},
+    {"name": "start_analysis", "operation_id": "coze_run_analysis_task"},
+    {"name": "get_task_status", "operation_id": "coze_query_task_status"},
+    {"name": "get_analysis_summary", "operation_id": "coze_retrieve_result_summary"},
+    {"name": "list_artifacts", "operation_id": "coze_list_task_artifacts"},
+    {"name": "download_artifact", "operation_id": "coze_download_task_artifact"}
+  ],
+  "publication": {
+    "performed": false,
+    "staging_deployment_performed": false,
+    "production_endpoint_created": false
+  },
+  "required_gates": [
+    "phase_8_4_offline_verification",
+    "full_pytest",
+    "https_base_url_review",
+    "secret_injection_review",
+    "reverse_proxy_review",
+    "rollback_review"
+  ]
+}
