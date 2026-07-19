@@ -1,10 +1,13 @@
 {
-  "manifest_version": "1.0",
-  "purpose": "Offline reference inputs for stable workflow and deployment-readiness regression checks.",
+  "manifest_version": "1.1",
+  "purpose": "Versioned workflow fixtures and real public RNA-seq reference datasets for regression validation without biological-truth claims.",
+  "cache_root": ".reference-data/cache",
+  "prepared_root": ".reference-data/prepared",
+  "report_root": ".staging-runtime/phase-8-6-validation",
   "classification_model": {
     "workflow_fixture": "Small synthetic or miniature data for workflow behavior checks only.",
-    "reference_dataset": "Versioned data with documented provenance for repeatable technical validation.",
-    "scientific_benchmark_dataset": "Real public data with documented source, license, benchmark purpose, and scientific limitations."
+    "reference_dataset": "Real public or otherwise versioned data with documented provenance for repeatable limited technical and scientific-boundary validation.",
+    "scientific_benchmark_dataset": "Data with a justified benchmark question and independently documented truth criteria; none are declared in Phase 8.6."
   },
   "datasets": [
     {
@@ -50,13 +53,8 @@
         "denominator": "control",
         "direction": "treatment_vs_control"
       },
-      "expected_sample_count": {
-        "exact": 6
-      },
-      "expected_gene_count": {
-        "min": 10,
-        "max": 10
-      },
+      "expected_sample_count": {"exact": 6},
+      "expected_gene_count": {"min": 10, "max": 10},
       "intended_validation_purpose": [
         "Input registration and validation",
         "Minimal workflow lifecycle regression",
@@ -71,6 +69,147 @@
       ],
       "scientific_validation_suitable": false,
       "golden_result": "docs/reference-datasets/golden-results/phase-8-4-rnaseq-minimal-synthetic-v1.json"
+    },
+    {
+      "dataset_id": "phase-8-6-pasilla-public-v1",
+      "dataset_type": "bulk_rnaseq_count_matrix_with_sample_metadata",
+      "classification": "reference_dataset",
+      "data_nature": "real_public",
+      "source": {
+        "type": "bioconductor_experiment_package",
+        "url": "https://bioconductor.org/packages/3.23/data/experiment/src/contrib/pasilla_1.40.0.tar.gz",
+        "accession": "GSE18508",
+        "description": "Bioconductor pasilla per-gene counts for Drosophila S2 cells with Pasilla RNAi knockdown."
+      },
+      "accession": "Bioconductor pasilla 1.40.0; GEO GSE18508; GSM461176-GSM461181",
+      "source_version": "pasilla 1.40.0 / Bioconductor 3.23",
+      "retrieval_date": "2026-07-19",
+      "license": "Bioconductor package license: LGPL. Underlying GEO data are public and retain their source attribution and modENCODE usage terms.",
+      "usage_terms": "Public validation use with citation of the pasilla package, Brooks et al., and GEO GSE18508; source terms remain controlling.",
+      "citation": "Brooks AN et al. Conservation of an RNA regulatory map between Drosophila and mammals. Genome Research 2011;21:193-202. PMID 20921232. Bioconductor DOI 10.18129/B9.bioc.pasilla.",
+      "provenance": {
+        "organism": "Drosophila melanogaster",
+        "experiment": "Pasilla RNAi knockdown versus untreated S2-DRSC cells",
+        "count_generation": "Per-gene counts distributed by the Bioconductor pasilla experiment package; upstream processing is documented by its vignette.",
+        "authority": "Bioconductor and NCBI GEO"
+      },
+      "retrieval": {
+        "method": "https_download",
+        "credentials_required": false,
+        "artifacts": [
+          {
+            "name": "pasilla_1.40.0.tar.gz",
+            "url": "https://bioconductor.org/packages/3.23/data/experiment/src/contrib/pasilla_1.40.0.tar.gz",
+            "size_bytes": 3303768,
+            "sha256": "75122d45eb2c415d3e94d1b9bc9e4f6978c4504ef7e70f6bfeccb20547cb3db5",
+            "cache_path": "phase-8-6-pasilla-public-v1/pasilla_1.40.0.tar.gz"
+          }
+        ]
+      },
+      "preprocessing": {
+        "version": "phase-8-6-preprocess-v1",
+        "adapter": "pasilla_bioconductor_tar",
+        "source_members": {
+          "count_matrix": "pasilla/inst/extdata/pasilla_gene_counts.tsv",
+          "metadata": "pasilla/inst/extdata/pasilla_sample_annotation.csv"
+        },
+        "sample_id_rule": "Strip the terminal fb suffix from the annotation file field.",
+        "sample_order": ["untreated1", "untreated2", "untreated3", "untreated4", "treated1", "treated2", "treated3"],
+        "gene_order": "lexicographic gene_id",
+        "duplicate_gene_policy": "sum integer counts by gene_id",
+        "missing_value_policy": "reject",
+        "non_integer_count_policy": "reject",
+        "zero_count_gene_policy": "retain",
+        "biological_filtering": "none"
+      },
+      "expected_files": [
+        {"role": "metadata", "path": ".reference-data/prepared/phase-8-6-pasilla-public-v1/metadata.csv", "sha256": "2f2aa2e802ff0e0beda0106d6f3e09463ae31c2cac0dfa56ca3cfdc95ab3f257", "storage": "prepared_cache"},
+        {"role": "count_matrix", "path": ".reference-data/prepared/phase-8-6-pasilla-public-v1/counts.csv", "sha256": "ac6d11f37578e23da60f86e1a1f0aaebb8d3ffb5ceb0b9b8f9abe17a1a8f7aa7", "storage": "prepared_cache"}
+      ],
+      "metadata_schema": {"format": "csv", "required_columns": ["sample_id", "condition"], "sample_id_column": "sample_id", "group_column": "condition"},
+      "count_matrix_schema": {"format": "csv", "orientation": "genes_by_samples", "gene_id_column": "gene_id", "sample_columns_must_match_metadata": true, "values": "non_negative_integer_counts"},
+      "contrast": {"column": "condition", "numerator": "treated", "denominator": "untreated", "direction": "treated_vs_untreated"},
+      "expected_sample_count": {"exact": 7},
+      "expected_gene_count": {"min": 14599, "max": 14599},
+      "validation_scope": ["Real-data input compatibility", "Minimal exploratory CPM/log2FC stability", "Scientific-boundary preservation", "Local and protected-staging deployment parity"],
+      "biological_interpretation_scope": "Limited to checking direction and ranking behavior for the declared contrast; not a claim of statistical significance or biological truth.",
+      "intended_validation_purpose": ["Real public two-group workflow validation", "Cross-source regression detection", "Reproducibility checks"],
+      "validation_methods": ["minimal_cpm_log2fc"],
+      "expected_environment_requirements": {"minimal_cpm_log2fc": "Python application runtime", "deseq2": "environment_dependent"},
+      "known_limitations": ["The package count table is a selected gene-level representation produced by historical alignment/counting software.", "Single-read and paired-end libraries are mixed.", "No batch or library-type adjustment is performed by the minimal workflow.", "Golden matching does not establish biological truth."],
+      "scientific_validation_suitable": true,
+      "scientific_validation_scope": "limited",
+      "golden_result": "docs/reference-datasets/golden-results/phase-8-6-pasilla-public-v1.json",
+      "ignored_generated_paths": [".reference-data/cache/phase-8-6-pasilla-public-v1", ".reference-data/prepared/phase-8-6-pasilla-public-v1", ".staging-runtime/phase-8-6-validation"]
+    },
+    {
+      "dataset_id": "phase-8-6-gse60450-luminal-public-v1",
+      "dataset_type": "bulk_rnaseq_count_matrix_with_sample_metadata",
+      "classification": "reference_dataset",
+      "data_nature": "real_public",
+      "source": {
+        "type": "ncbi_geo_supplementary_counts",
+        "url": "https://www.ncbi.nlm.nih.gov/geo/series/GSE60nnn/GSE60450/",
+        "accession": "GSE60450",
+        "description": "NCBI GEO genewise counts for sorted mouse mammary epithelial populations across developmental stages."
+      },
+      "accession": "GEO GSE60450; luminal subset GSM1480291, GSM1480292, GSM1480295, GSM1480296",
+      "source_version": "GEO record last update 2019-05-15; pinned supplementary and series-matrix bytes",
+      "retrieval_date": "2026-07-19",
+      "license": "No separate dataset license is stated by GEO. The files are public-access research data; NCBI policies, submitter rights, and citation requirements apply.",
+      "usage_terms": "Public validation use with attribution to GEO GSE60450 and Fu et al.; no relicensing or unrestricted-rights claim is made.",
+      "citation": "Fu NY et al. EGF-mediated induction of Mcl-1 at the switch to lactation is essential for alveolar cell survival. Nature Cell Biology 2015. PMID 25730472. GEO GSE60450.",
+      "provenance": {
+        "organism": "Mus musculus",
+        "experiment": "FACS-sorted mammary luminal cells from virgin and two-day lactating mice",
+        "count_generation": "Reads aligned with Subread 1.4.4 and summarized as genewise counts distributed by NCBI GEO.",
+        "authority": "NCBI GEO"
+      },
+      "retrieval": {
+        "method": "https_download",
+        "credentials_required": false,
+        "artifacts": [
+          {"name": "GSE60450_Lactation-GenewiseCounts.txt.gz", "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE60nnn/GSE60450/suppl/GSE60450_Lactation-GenewiseCounts.txt.gz", "size_bytes": 513592, "sha256": "906b6ec4c33e95ca0ba454a3e0d07ad74e9cb7528ee38b89a9b122f5674a5f0d", "cache_path": "phase-8-6-gse60450-luminal-public-v1/GSE60450_Lactation-GenewiseCounts.txt.gz"},
+          {"name": "GSE60450_series_matrix.txt.gz", "url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE60nnn/GSE60450/matrix/GSE60450_series_matrix.txt.gz", "size_bytes": 2633, "sha256": "8b3b727e7c8a7794c2bda57d62109c4cecdb9dc6eaac579a8cfa7e8921638267", "cache_path": "phase-8-6-gse60450-luminal-public-v1/GSE60450_series_matrix.txt.gz"}
+        ]
+      },
+      "preprocessing": {
+        "version": "phase-8-6-preprocess-v1",
+        "adapter": "gse60450_geo_counts",
+        "sample_selection": [
+          {"source_prefix": "MCL1-LA", "sample_id": "GSM1480291", "condition": "virgin", "source_label": "Luminal virgin #1"},
+          {"source_prefix": "MCL1-LB", "sample_id": "GSM1480292", "condition": "virgin", "source_label": "Luminal virgin #2"},
+          {"source_prefix": "MCL1-LE", "sample_id": "GSM1480295", "condition": "lactating", "source_label": "Luminal 2 dL #1"},
+          {"source_prefix": "MCL1-LF", "sample_id": "GSM1480296", "condition": "lactating", "source_label": "Luminal 2 dL #2"}
+        ],
+        "sample_order": ["GSM1480291", "GSM1480292", "GSM1480295", "GSM1480296"],
+        "gene_order": "lexicographic Entrez gene identifier",
+        "duplicate_gene_policy": "sum integer counts by gene_id",
+        "missing_value_policy": "reject",
+        "non_integer_count_policy": "reject",
+        "zero_count_gene_policy": "retain",
+        "discarded_source_columns": ["Length", "unselected biological groups"],
+        "biological_filtering": "sample subset only; no gene filtering"
+      },
+      "expected_files": [
+        {"role": "metadata", "path": ".reference-data/prepared/phase-8-6-gse60450-luminal-public-v1/metadata.csv", "sha256": "4adf16c102b6040136188b83757dc905fa8525bf669d94c63951ac5160b54939", "storage": "prepared_cache"},
+        {"role": "count_matrix", "path": ".reference-data/prepared/phase-8-6-gse60450-luminal-public-v1/counts.csv", "sha256": "d5c3d726706b7067d3f53c5d0d776cac5d9277af1153e3f0a383942431f293d8", "storage": "prepared_cache"}
+      ],
+      "metadata_schema": {"format": "csv", "required_columns": ["sample_id", "condition"], "sample_id_column": "sample_id", "group_column": "condition"},
+      "count_matrix_schema": {"format": "csv", "orientation": "genes_by_samples", "gene_id_column": "gene_id", "sample_columns_must_match_metadata": true, "values": "non_negative_integer_counts"},
+      "contrast": {"column": "condition", "numerator": "lactating", "denominator": "virgin", "direction": "lactating_vs_virgin"},
+      "expected_sample_count": {"exact": 4},
+      "expected_gene_count": {"min": 27179, "max": 27179},
+      "validation_scope": ["Independent real-data input compatibility", "Deterministic sample-subset conversion", "Minimal exploratory CPM/log2FC stability", "Local and protected-staging deployment parity"],
+      "biological_interpretation_scope": "Limited to technical regression checks for the luminal lactating-versus-virgin direction; no formal differential-expression claim.",
+      "intended_validation_purpose": ["Second-source real public workflow validation", "Subset provenance validation", "Cross-boundary reproducibility checks"],
+      "validation_methods": ["minimal_cpm_log2fc"],
+      "expected_environment_requirements": {"minimal_cpm_log2fc": "Python application runtime", "deseq2": "environment_dependent"},
+      "known_limitations": ["Only four luminal samples from the twelve-sample source matrix are retained.", "The subset is not asserted to be a comprehensive or independent scientific benchmark.", "No paired-donor, batch, or complex-design adjustment is performed by the minimal workflow.", "Golden matching detects regressions and does not establish biological truth."],
+      "scientific_validation_suitable": true,
+      "scientific_validation_scope": "limited",
+      "golden_result": "docs/reference-datasets/golden-results/phase-8-6-gse60450-luminal-public-v1.json",
+      "ignored_generated_paths": [".reference-data/cache/phase-8-6-gse60450-luminal-public-v1", ".reference-data/prepared/phase-8-6-gse60450-luminal-public-v1", ".staging-runtime/phase-8-6-validation"]
     }
   ]
 }

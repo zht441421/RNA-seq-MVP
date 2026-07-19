@@ -277,9 +277,31 @@ The normal `down` command preserves named volumes; destructive `down -v` is a
 deliberate operator-only cleanup after retention requirements are satisfied.
 No remote deployment, Coze integration, or production publication was performed.
 
-## Roadmap after Phase 8.5
+## Phase 8.6 Real Public Reference Dataset Validation
 
-- Phase 8.6 Reference Dataset Validation
+Phase 8.6 adds reproducible retrieval and deterministic preparation for two
+independent public bulk RNA-seq references: Bioconductor Pasilla/GEO GSE18508
+and the declared luminal subset of NCBI GEO GSE60450. The existing exploratory
+API workflow is exercised locally and through the Phase 8.5 protected local
+staging boundary. Golden Results combine exact contract checks with numeric
+tolerances, direction checks, top-ranking overlap, finite-value guards, safe
+artifact checks, and explicit scientific-language boundaries.
+
+Run the offline regression gate with:
+
+```text
+python scripts\verify_phase_8_6_reference_dataset_validation.py
+```
+
+Public source/prepared data and generated reports remain in Git-ignored local
+directories. Standard `pytest` requires no network. Phase 8.6 changes no API
+contract, RNA-seq algorithm, or DESeq2 behavior; it performs no Coze or remote
+deployment and makes no unsupported biological conclusion. See
+`docs/phase-8-6-reference-dataset-validation.md` for provenance, licenses,
+commands, Golden Result policy, staging flow, reports, and limitations.
+
+## Roadmap after Phase 8.6
+
 - Phase 8.7 Real Coze End-to-End Integration
 - Phase 8.8 Scientific Reliability Evaluation
 - Phase 8.9 Limited Pilot Release

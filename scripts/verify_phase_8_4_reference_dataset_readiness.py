@@ -99,13 +99,19 @@ def verify_readiness() -> list[str]:
         failures.extend(validate_golden_result(golden))
         if golden.get("dataset_id") != dataset.get("dataset_id"):
             failures.append(f"Golden Result dataset mismatch: {dataset.get('dataset_id')}")
-        comparison = compare_golden_result(
-            _self_check_observation(golden),
-            golden,
-            environment={"deseq2_ready": False},
-        )
-        if not comparison["passed"]:
-            failures.append(f"Golden Result is not self-consistent: {dataset.get('dataset_id')}")
+        # Phase 8.4's synthetic fixture can be self-checked from its contract.
+        # Real-public Phase 8.6 goldens require actual execution observations and
+        # are validated by the Phase 8.6 runner instead.
+        if dataset.get("classification") == "workflow_fixture":
+            comparison = compare_golden_result(
+                _self_check_observation(golden),
+                golden,
+                environment={"deseq2_ready": False},
+            )
+            if not comparison["passed"]:
+                failures.append(
+                    f"Golden Result is not self-consistent: {dataset.get('dataset_id')}"
+                )
 
     canonical_manifest = build_coze_tool_manifest()
     if stored_coze_manifest != canonical_manifest:

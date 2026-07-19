@@ -4,6 +4,7 @@ __pycache__/
 .env
 .staging-secrets/
 .staging-runtime/
+.reference-data/
 
 .storage/
 acceptance_reports/

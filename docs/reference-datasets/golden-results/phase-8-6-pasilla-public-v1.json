@@ -1,0 +1,83 @@
+{
+  "golden_result_version": "1.1",
+  "dataset_id": "phase-8-6-pasilla-public-v1",
+  "description": "Behavioral and tolerance-based expectations for the real public Pasilla reference data.",
+  "comparison_modes": {
+    "exact": "Stable method, contrast, counts, state, and scientific-safety flags.",
+    "numeric_tolerance": "Selected exploratory log2FC values use explicit absolute or relative tolerances.",
+    "sign": "Selected stable genes retain numerator-versus-denominator direction.",
+    "overlap": "Top-ranked identifiers use a threshold instead of complete ordering equality.",
+    "finite": "User-facing ranking values must contain neither NaN nor infinity.",
+    "environment_dependent": "DESeq2 status follows the real preflight result."
+  },
+  "checks": {
+    "exact": {
+      "analysis_method": "minimal_cpm_log2fc",
+      "comparison_direction": "treated_vs_untreated",
+      "input_sample_count": 7,
+      "input_gene_count": 14599,
+      "terminal_task_status": "run_placeholder_ready",
+      "statistical_test_performed": false,
+      "pvalue_available": false,
+      "adjusted_pvalue_available": false,
+      "scientific_conclusion_generated": false
+    },
+    "required_fields": ["reliability_information", "warnings", "limitations", "interpretation_boundary", "summary_fields"],
+    "accepted_values": {
+      "reliability_information.available": [false],
+      "reliability_information.grade": [null],
+      "reliability_information.strong_conclusion_allowed": [false]
+    },
+    "numeric_ranges": {"retained_gene_count": {"min": 9921, "max": 9921}},
+    "numeric_tolerances": {
+      "selected_gene_log2fc.FBgn0039155": {"expected": -4.244119, "absolute": 0.00001, "relative": 0.00001}
+    },
+    "sign_comparisons": {
+      "selected_gene_log2fc.FBgn0039155": "negative",
+      "selected_gene_log2fc.FBgn0003360": "negative",
+      "selected_gene_log2fc.FBgn0025111": "positive",
+      "selected_gene_log2fc.FBgn0035189": "positive"
+    },
+    "overlap_thresholds": {
+      "top_ranked_gene_ids": {
+        "top_n": 20,
+        "minimum_overlap": 18,
+        "expected": ["FBgn0039155", "FBgn0039827", "FBgn0003360", "FBgn0034736", "FBgn0085359", "FBgn0025111", "FBgn0034434", "FBgn0035189", "FBgn0024288", "FBgn0033764", "FBgn0000071", "FBgn0035085", "FBgn0037290", "FBgn0038832", "FBgn0026562", "FBgn0029896", "FBgn0030041", "FBgn0032405", "FBgn0051092", "FBgn0037754"]
+      }
+    },
+    "unordered_sets": {
+      "artifact_categories": {
+        "mode": "subset",
+        "expected": ["minimal_run_manifest", "minimal_execution_summary", "minimal_qc_summary", "normalized_counts_cpm", "preliminary_log2fc_ranking", "minimal_analysis_report"]
+      }
+    },
+    "finite_fields": ["ranking_log2fc_values"],
+    "required_text_concepts": {
+      "limitations": ["No p-values", "No adjusted p-values", "No GO/KEGG/GSEA"],
+      "interpretation_boundary": ["Exploratory", "not formal"]
+    },
+    "forbidden_text_patterns": ["statistically significant", "significant differential expression", "causes? the phenotype", "enrichment analysis completed"],
+    "required_artifact_categories": ["minimal_run_manifest", "minimal_execution_summary", "minimal_qc_summary", "normalized_counts_cpm", "preliminary_log2fc_ranking", "minimal_analysis_report"],
+    "forbidden_fields": ["reported_pvalues", "reported_adjusted_pvalues", "enrichment_results"],
+    "forbidden_claims": ["statistically significant", "significant differential expression", "causes the phenotype", "enrichment analysis completed"],
+    "environment_dependent": {
+      "deseq2_execution_state": {
+        "environment_key": "deseq2_ready",
+        "when_true": {"accepted_values": ["available_for_separate_validation"]},
+        "when_false": {"accepted_values": ["unavailable"]}
+      }
+    }
+  },
+  "expected_summary_schema_fields": ["task_id", "status", "analysis_method", "statistical_test_performed", "pvalue_available", "adjusted_pvalue_available", "summary_message", "reliability_information", "artifact_references", "warnings", "limitations", "interpretation_boundary", "safe_to_present"],
+  "deseq2_requirement": {"mode": "environment_dependent", "required_for_this_golden_result": false, "rule": "Only a real successful preflight permits separate DESeq2 validation; this Golden Result never simulates it."},
+  "software_version_tolerance_notes": ["Full result-table byte equality is not required.", "The selected CPM/log2FC value is checked after the existing six-decimal artifact formatting.", "Top-20 overlap permits two ordering/set changes while retaining strong regression sensitivity."],
+  "scientific_boundaries": {
+    "workflow_classification": "exploratory",
+    "data_nature": "real_public",
+    "pvalues_expected": false,
+    "adjusted_pvalues_expected": false,
+    "statistical_significance_claims_allowed": false,
+    "biological_causation_claims_allowed": false,
+    "golden_result_validates": "system_behavior_not_biological_truth"
+  }
+}

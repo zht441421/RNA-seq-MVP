@@ -3,6 +3,7 @@
 .pytest_cache
 .staging-secrets
 .staging-runtime
+.reference-data
 .storage
 .venv
 __pycache__

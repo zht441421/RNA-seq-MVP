@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import re
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
@@ -44,6 +46,19 @@ REQUIRED_GOLDEN_FIELDS = {
     "checks",
     "scientific_boundaries",
 }
+PUBLIC_DATASET_REQUIRED_FIELDS = {
+    "validation_scope",
+    "biological_interpretation_scope",
+    "provenance",
+    "license",
+    "citation",
+    "accession",
+    "source_version",
+    "retrieval_date",
+    "retrieval",
+    "preprocessing",
+    "expected_environment_requirements",
+}
 REQUIRED_CHECK_GROUPS = {
     "exact",
     "required_fields",
@@ -70,8 +85,8 @@ def validate_reference_manifest(
     verify_local_files: bool = False,
 ) -> list[str]:
     errors: list[str] = []
-    if manifest.get("manifest_version") != "1.0":
-        errors.append("manifest_version must be 1.0")
+    if manifest.get("manifest_version") not in {"1.0", "1.1"}:
+        errors.append("manifest_version must be 1.0 or 1.1")
     datasets = manifest.get("datasets")
     if not isinstance(datasets, list) or not datasets:
         return [*errors, "datasets must be a non-empty array"]
@@ -102,6 +117,20 @@ def validate_reference_manifest(
             "scientific_validation_suitable"
         ) is not False:
             errors.append(f"{label} synthetic data cannot be scientific validation data")
+        if dataset.get("data_nature") == "real_public":
+            public_missing = sorted(PUBLIC_DATASET_REQUIRED_FIELDS - set(dataset))
+            if public_missing:
+                errors.append(
+                    f"{label} missing real-public fields: {', '.join(public_missing)}"
+                )
+            if dataset.get("classification") != "reference_dataset":
+                errors.append(f"{label} real public validation data must be a reference_dataset")
+            source = dataset.get("source")
+            if not isinstance(source, dict) or not str(source.get("url") or "").startswith("https://"):
+                errors.append(f"{label}.source.url must be a public HTTPS URL")
+            for field in ("license", "citation", "accession", "source_version"):
+                if not isinstance(dataset.get(field), str) or not dataset[field].strip():
+                    errors.append(f"{label}.{field} must be a non-empty string")
         limitations = dataset.get("known_limitations")
         if not isinstance(limitations, list) or not limitations:
             errors.append(f"{label}.known_limitations must be a non-empty array")
@@ -127,8 +156,8 @@ def validate_golden_result(golden: dict[str, Any]) -> list[str]:
     missing = sorted(REQUIRED_GOLDEN_FIELDS - set(golden))
     if missing:
         errors.append("Golden Result missing fields: " + ", ".join(missing))
-    if golden.get("golden_result_version") != "1.0":
-        errors.append("golden_result_version must be 1.0")
+    if golden.get("golden_result_version") not in {"1.0", "1.1"}:
+        errors.append("golden_result_version must be 1.0 or 1.1")
     checks = golden.get("checks")
     if not isinstance(checks, dict):
         return [*errors, "checks must be an object"]
@@ -151,6 +180,18 @@ def validate_golden_result(golden: dict[str, Any]) -> list[str]:
         errors.append("scientific_boundaries must be an object")
     elif boundaries.get("golden_result_validates") != "system_behavior_not_biological_truth":
         errors.append("Golden Result must validate system behavior, not biological truth")
+    optional_groups = {
+        "numeric_tolerances": dict,
+        "sign_comparisons": dict,
+        "overlap_thresholds": dict,
+        "unordered_sets": dict,
+        "finite_fields": list,
+        "forbidden_text_patterns": list,
+        "required_text_concepts": dict,
+    }
+    for name, expected_type in optional_groups.items():
+        if name in checks and not isinstance(checks[name], expected_type):
+            errors.append(f"checks.{name} must be a {expected_type.__name__}")
     return errors
 
 
@@ -194,6 +235,73 @@ def compare_golden_result(
         if valid and bounds.get("max") is not None:
             valid = actual <= bounds["max"]
         _record(checks_run, failures, "numeric_range", field, bool(valid))
+
+    for field, rule in checks.get("numeric_tolerances", {}).items():
+        actual, present = _lookup(observed, field)
+        expected = rule.get("expected") if isinstance(rule, dict) else None
+        valid = _finite_number(actual) and _finite_number(expected)
+        if valid:
+            absolute = abs(float(actual) - float(expected))
+            absolute_limit = float(rule.get("absolute", 0.0))
+            relative_limit = float(rule.get("relative", 0.0))
+            relative = absolute / max(abs(float(expected)), 1e-300)
+            valid = absolute <= absolute_limit or relative <= relative_limit
+        _record(checks_run, failures, "numeric_tolerance", field, present and bool(valid))
+
+    for field, expected_sign in checks.get("sign_comparisons", {}).items():
+        actual, present = _lookup(observed, field)
+        sign = "zero"
+        if _finite_number(actual):
+            sign = "positive" if actual > 0 else "negative" if actual < 0 else "zero"
+        _record(checks_run, failures, "sign", field, present and sign == expected_sign)
+
+    for field, rule in checks.get("overlap_thresholds", {}).items():
+        actual, present = _lookup(observed, field)
+        expected = set(rule.get("expected", [])) if isinstance(rule, dict) else set()
+        actual_values = list(actual) if isinstance(actual, list) else []
+        top_n = int(rule.get("top_n", len(actual_values)))
+        overlap = len(set(actual_values[:top_n]) & expected)
+        minimum = int(rule.get("minimum_overlap", len(expected)))
+        _record(checks_run, failures, "overlap", field, present and overlap >= minimum)
+
+    for field, rule in checks.get("unordered_sets", {}).items():
+        actual, present = _lookup(observed, field)
+        expected = set(rule.get("expected", [])) if isinstance(rule, dict) else set()
+        actual_set = set(actual) if isinstance(actual, list) else set()
+        mode = rule.get("mode", "exact") if isinstance(rule, dict) else "exact"
+        valid = expected.issubset(actual_set) if mode == "subset" else expected == actual_set
+        _record(checks_run, failures, "unordered_set", field, present and valid)
+
+    for field in checks.get("finite_fields", []):
+        actual, present = _lookup(observed, field)
+        values = actual if isinstance(actual, list) else [actual]
+        valid = present and bool(values) and all(_finite_number(value) for value in values)
+        _record(checks_run, failures, "finite", field, valid)
+
+    # Non-finite observations must produce failed checks, not crash the verifier.
+    # JSON's NaN/Infinity spellings are safe here because this rendering is used
+    # only for defensive text-pattern matching and is never emitted as a report.
+    rendered_observation = json.dumps(
+        observed, sort_keys=True, allow_nan=True, default=str
+    ).lower()
+    for pattern in checks.get("forbidden_text_patterns", []):
+        try:
+            absent = re.search(str(pattern), rendered_observation, re.IGNORECASE) is None
+        except re.error:
+            absent = False
+        _record(checks_run, failures, "forbidden_text", str(pattern), absent)
+
+    for field, concepts in checks.get("required_text_concepts", {}).items():
+        actual, present = _lookup(observed, field)
+        rendered = " ".join(str(value) for value in actual) if isinstance(actual, list) else str(actual or "")
+        for concept in concepts:
+            _record(
+                checks_run,
+                failures,
+                "required_text_concept",
+                f"{field}:{concept}",
+                present and str(concept).lower() in rendered.lower(),
+            )
 
     artifact_categories = set(observed.get("artifact_categories") or [])
     for category in checks["required_artifact_categories"]:
@@ -308,7 +416,10 @@ def _validate_file_entry(
     checksum = str(value.get("sha256") or "")
     if checksum and (len(checksum) != 64 or any(character not in "0123456789abcdefABCDEF" for character in checksum)):
         errors.append(f"{label}.sha256 must be a SHA-256 hex digest")
-    if verify_local_files and repository_root is not None and not errors:
+    storage = str(value.get("storage") or "repository")
+    if storage not in {"repository", "cache", "prepared_cache"}:
+        errors.append(f"{label}.storage is invalid")
+    if verify_local_files and storage == "repository" and repository_root is not None and not errors:
         local_path = repository_root / Path(*PurePosixPath(path_value).parts)
         if not local_path.is_file():
             errors.append(f"{label} referenced local file is missing")
@@ -337,6 +448,14 @@ def _lookup(value: dict[str, Any], dotted_path: str) -> tuple[Any, bool]:
             return None, False
         current = current[part]
     return current, True
+
+
+def _finite_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
 
 
 def _record(

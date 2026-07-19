@@ -1,0 +1,6 @@
+services:
+  api:
+    environment:
+      BIOINFO_INPUT_ROOT: /var/lib/bioinfo/reference-data
+    volumes:
+      - ./.reference-data/prepared:/var/lib/bioinfo/reference-data:ro

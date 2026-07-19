@@ -16,7 +16,8 @@ public provenance, terms, and benchmark design have been reviewed.
 
 ## Manifest contract
 
-`reference-dataset-manifest.json` uses version `1.0` and supports multiple
+`reference-dataset-manifest.json` uses version `1.1` (while the validator keeps
+version `1.0` compatibility) and supports multiple
 dataset entries. Every entry records a stable identifier, type, classification,
 data nature, source, usage terms, SHA-256 protected files, metadata and count
 matrix schemas, contrast direction, expected counts, validation purpose,
@@ -25,6 +26,10 @@ repository-relative and never deployment filesystem paths.
 
 The initial entry reuses `data/demo/rnaseq_minimal`. It is synthetic,
 classified as `workflow_fixture`, and is unsuitable for scientific validation.
+Phase 8.6 adds two `real_public` reference datasets with pinned source bytes,
+deterministic preparation, explicit usage/citation terms, limited scientific
+scope, and ignored local data storage. They are not declared scientific truth
+benchmarks.
 
 ## Golden Result philosophy
 
@@ -39,7 +44,9 @@ fragile byte-for-byte output. Version `1.0` supports:
 - forbidden fields and unsupported claims;
 - environment-dependent expectations such as real DESeq2 readiness.
 
-Floating-point tables, software-version-dependent values, timestamps, request
+Version `1.1` additionally supports explicit numeric tolerances, sign checks,
+top-ranking overlap thresholds, unordered sets, finite-number checks, and safe
+text-boundary checks. Floating-point tables, software-version-dependent values, timestamps, request
 IDs, artifact ordering, and DESeq2 numeric results are intentionally not exact
 Golden Result expectations.
 
