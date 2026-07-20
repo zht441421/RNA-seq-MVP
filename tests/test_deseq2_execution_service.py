@@ -117,7 +117,7 @@ def test_deseq2_requested_but_preflight_not_ready_returns_safe_error(
     monkeypatch.setattr(
         deseq2_execution,
         "run_command_safely",
-        lambda args, timeout_seconds=120: calls.append(args) or CommandResult(args=args, returncode=0),
+        lambda args, timeout_seconds=120, working_directory=None: calls.append(args) or CommandResult(args=args, returncode=0),
     )
 
     with pytest.raises(Deseq2ExecutionError) as exc_info:
@@ -182,7 +182,7 @@ def test_successful_mocked_deseq2_execution_writes_outputs_and_contract(
         _ready_preflight,
     )
 
-    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+    def fake_run(args: list[str], timeout_seconds: int = 120, working_directory=None) -> CommandResult:
         _write_mock_results(args[-1])
         return CommandResult(args=args, returncode=0)
 
@@ -265,7 +265,7 @@ def test_failed_rscript_error_is_sanitized(
     monkeypatch.setattr(
         deseq2_execution,
         "run_command_safely",
-        lambda args, timeout_seconds=120: CommandResult(
+        lambda args, timeout_seconds=120, working_directory=None: CommandResult(
             args=args,
             returncode=1,
             stderr=r"D:\private\token.txt /home/user/password traceback secret",

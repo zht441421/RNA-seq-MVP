@@ -88,7 +88,10 @@ class StagingClient:
             headers["Content-Type"] = "application/json"
         request = Request(self.base_url + url, data=body, headers=headers, method=method)
         try:
-            with self.opener.open(request, timeout=30) as response:
+            # The fixed container runtime performs a controlled full-package
+            # DESeq2 readiness load. Allow cold staging starts while remaining
+            # below the backend's 120-second request timeout.
+            with self.opener.open(request, timeout=60) as response:
                 return SimpleResponse(
                     response.getcode(),
                     {key.lower(): value for key, value in response.headers.items()},

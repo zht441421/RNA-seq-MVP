@@ -78,7 +78,10 @@ class LocalStagingClient:
             method=method,
         )
         try:
-            with self.opener.open(request, timeout=15) as response:
+            # A cold, controlled DESeq2 package-load preflight can take longer
+            # than the lightweight Phase 8.5 endpoints in a resource-limited
+            # staging container. Keep this below the staging request limit.
+            with self.opener.open(request, timeout=45) as response:
                 status = response.getcode()
                 response_headers = {key.lower(): value for key, value in response.headers.items()}
                 body = response.read()

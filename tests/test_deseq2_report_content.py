@@ -135,7 +135,7 @@ def test_deseq2_report_contains_formal_method_boundaries(
         _ready_preflight,
     )
 
-    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+    def fake_run(args: list[str], timeout_seconds: int = 120, working_directory=None) -> CommandResult:
         _write_mock_results(args[-1])
         return CommandResult(args=args, returncode=0)
 

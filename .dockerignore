@@ -4,6 +4,12 @@
 .staging-secrets
 .staging-runtime
 .reference-data
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user
+.r-library
+.r-package-cache
 .storage
 .venv
 __pycache__
@@ -20,3 +26,13 @@ docker
 *.db
 *.sqlite
 *.sqlite3
+
+# Phase 8.6.1 runtime contract files copied explicitly by Dockerfile.
+!docs/
+docs/*
+!docs/runtime/
+docs/runtime/*
+!docs/runtime/r-deseq2-runtime.json
+!scripts/
+scripts/*
+!scripts/probe_phase_8_6_1_r_deseq2_runtime.py

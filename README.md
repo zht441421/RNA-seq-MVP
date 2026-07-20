@@ -300,8 +300,33 @@ deployment and makes no unsupported biological conclusion. See
 `docs/phase-8-6-reference-dataset-validation.md` for provenance, licenses,
 commands, Golden Result policy, staging flow, reports, and limitations.
 
-## Roadmap after Phase 8.6
+## Phase 8.6.1 Containerized R / DESeq2 Runtime Enablement
 
+Phase 8.6.1 keeps the existing single FastAPI application container and adds a
+build-time-only, fixed R runtime from a timestamped Debian Bookworm snapshot:
+R/Rscript 4.2.2, Bioconductor 3.16, BiocManager 1.30.20 and DESeq2 1.38.3.
+The application and R subprocess run as UID/GID `10001:10001`; the staging root
+filesystem, application source, installed R libraries and reference data remain
+read-only. Package installation is unavailable at startup and task time.
+
+```text
+docker build --pull=false --build-arg VCS_REF=phase-8-6-1-uncommitted -t bioinformatics-agent-api:phase-8-6-1-local .
+docker compose -f docker-compose.staging.yml up --no-build -d
+docker compose -f docker-compose.staging.yml exec -T api python scripts/probe_phase_8_6_1_r_deseq2_runtime.py --json
+python scripts\verify_phase_8_6_1_containerized_r_deseq2_runtime.py --offline
+python scripts\verify_phase_8_6_1_containerized_r_deseq2_runtime.py --docker
+```
+
+Runtime readiness only proves that the fixed packages can load and the existing
+DESeq2 preflight is ready. It does not prove scientific validity and does not
+freeze a real-data DESeq2 result baseline. No Phase 8.6 Golden Result is changed,
+and no Coze or remote/production deployment is performed. Phase 8.6.2 remains
+the required next phase. See
+`docs/phase-8-6-1-containerized-r-deseq2-runtime.md`.
+
+## Roadmap after Phase 8.6.1
+
+- Phase 8.6.2 DESeq2 Real-Data Validation & Scientific Baseline Freeze
 - Phase 8.7 Real Coze End-to-End Integration
 - Phase 8.8 Scientific Reliability Evaluation
 - Phase 8.9 Limited Pilot Release

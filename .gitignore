@@ -5,6 +5,12 @@ __pycache__/
 .staging-secrets/
 .staging-runtime/
 .reference-data/
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+.r-library/
+.r-package-cache/
 
 .storage/
 acceptance_reports/

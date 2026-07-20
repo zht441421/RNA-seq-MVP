@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "architecture": "single_application_container",
+  "installation_strategy": "debian_snapshot_build_time_packages",
+  "base_image": "python:3.12.10-slim-bookworm",
+  "base_image_digest": "sha256:fd95fa221297a88e1cf49c55ec1828edd7c5a428187e67b5d1805692d11588db",
+  "debian_snapshot": "20250601T000000Z",
+  "linux_distribution": "Debian GNU/Linux 12 (bookworm)",
+  "python_version": "3.12.10",
+  "r_version": "4.2.2",
+  "rscript_version": "4.2.2",
+  "bioconductor_version": "3.16",
+  "biocmanager_version": "1.30.20",
+  "deseq2_version": "1.38.3",
+  "required_packages": {
+    "BiocGenerics": "0.44.0",
+    "BiocVersion": "3.16.0",
+    "IRanges": "2.32.0",
+    "S4Vectors": "0.36.1",
+    "SummarizedExperiment": "1.28.0"
+  },
+  "pinned_debian_packages": {
+    "r-base-core": "4.2.2.20221110-2",
+    "r-bioc-biocversion": "3.16.0-1",
+    "r-bioc-deseq2": "1.38.3+dfsg-1",
+    "r-cran-biocmanager": "1.30.20+dfsg-1"
+  },
+  "verified_system_libraries": {
+    "libblas3": "3.11.0-2",
+    "libgfortran5": "12.2.0-14+deb12u1",
+    "liblapack3": "3.11.0-2",
+    "libxml2": "2.9.14+dfsg-1.3~deb12u1"
+  },
+  "package_repository_policy": {
+    "repository": "snapshot.debian.org",
+    "suite": "bookworm",
+    "runtime_installation_allowed": false,
+    "task_time_installation_allowed": false
+  }
+}

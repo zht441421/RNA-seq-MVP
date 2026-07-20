@@ -55,10 +55,31 @@ def _patch_preflight_environment(
     monkeypatch.setattr(
         formal_de_preflight,
         "check_r_package_available",
-        lambda package_name: {
-            "BiocManager": biocmanager_available,
-            "DESeq2": deseq2_available,
-        }[package_name],
+        lambda package_name: (
+            biocmanager_available
+            if package_name == "BiocManager"
+            else deseq2_available
+        ),
+    )
+    monkeypatch.setattr(
+        formal_de_preflight,
+        "check_controlled_runtime_script",
+        lambda: (
+            deseq2_available,
+            {
+                "Bioconductor": "3.16",
+                "BiocManager": "1.30.20",
+                "BiocVersion": "3.16.0",
+                "DESeq2": "1.38.3",
+                "SummarizedExperiment": "1.28.0",
+                "S4Vectors": "0.36.1",
+                "IRanges": "2.32.0",
+                "BiocGenerics": "0.44.0",
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        formal_de_preflight, "check_runtime_directories_writable", lambda: True
     )
 
 
@@ -201,7 +222,7 @@ def test_run_command_safely_uses_list_args_and_disables_shell(
     assert calls[0]["args"] == ["R", "--version"]
     assert isinstance(calls[0]["args"], list)
     assert calls[0]["kwargs"]["shell"] is False
-    assert calls[0]["kwargs"]["timeout"] == 10
+    assert calls[0]["kwargs"]["timeout"] == 20
 
 
 def test_timeout_errors_are_handled_safely(monkeypatch: pytest.MonkeyPatch) -> None:

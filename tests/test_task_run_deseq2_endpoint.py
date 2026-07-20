@@ -169,7 +169,7 @@ def test_task_run_deseq2_preflight_not_ready_is_safe_and_not_completed(
     monkeypatch.setattr(
         deseq2_execution,
         "run_command_safely",
-        lambda args, timeout_seconds=120: calls.append(args) or CommandResult(args=args, returncode=0),
+        lambda args, timeout_seconds=120, working_directory=None: calls.append(args) or CommandResult(args=args, returncode=0),
     )
 
     client = TestClient(app)
@@ -210,7 +210,7 @@ def test_task_run_deseq2_success_returns_artifacts(
         _ready_preflight,
     )
 
-    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+    def fake_run(args: list[str], timeout_seconds: int = 120, working_directory=None) -> CommandResult:
         _write_mock_results(args[-1])
         return CommandResult(args=args, returncode=0)
 

@@ -93,7 +93,7 @@ def test_deseq2_receives_explicit_contrast_and_writes_contrast_artifacts(
     monkeypatch.setenv("BIOINFO_OUTPUT_ROOT", str(output_root))
     calls: list[list[str]] = []
 
-    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+    def fake_run(args: list[str], timeout_seconds: int = 120, working_directory=None) -> CommandResult:
         calls.append(args)
         _write_mock_results(args[-1])
         return CommandResult(args=args, returncode=0)
@@ -157,7 +157,7 @@ def test_invalid_deseq2_contrast_does_not_call_rscript(
     monkeypatch.setattr(
         deseq2_execution,
         "run_command_safely",
-        lambda args, timeout_seconds=120: calls.append(args) or CommandResult(
+        lambda args, timeout_seconds=120, working_directory=None: calls.append(args) or CommandResult(
             args=args,
             returncode=0,
         ),

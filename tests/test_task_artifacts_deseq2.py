@@ -141,7 +141,7 @@ def test_artifacts_endpoint_lists_deseq2_outputs_and_descriptions(
         _ready_preflight,
     )
 
-    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+    def fake_run(args: list[str], timeout_seconds: int = 120, working_directory=None) -> CommandResult:
         _write_mock_results(args[-1])
         return CommandResult(args=args, returncode=0)
 

@@ -157,7 +157,7 @@ def test_phase_4_9_demo_script_validates_mocked_deseq2_success(
         _ready_preflight,
     )
 
-    def fake_run(args: list[str], timeout_seconds: int = 120) -> CommandResult:
+    def fake_run(args: list[str], timeout_seconds: int = 120, working_directory=None) -> CommandResult:
         _write_mock_results(args[-1])
         return CommandResult(args=args, returncode=0)
 

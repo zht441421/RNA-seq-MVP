@@ -165,7 +165,11 @@ def execute_task_deseq2(
         contrast.contrast_denominator,
         str(results_path),
     ]
-    command_result = run_command_safely(command, timeout_seconds=_DESEQ2_TIMEOUT_SECONDS)
+    command_result = run_command_safely(
+        command,
+        timeout_seconds=_DESEQ2_TIMEOUT_SECONDS,
+        working_directory=output_dir,
+    )
     if command_result.returncode != 0:
         raise _execution_failed(command_result)
 

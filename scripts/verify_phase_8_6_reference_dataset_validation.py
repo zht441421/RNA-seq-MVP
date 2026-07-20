@@ -20,6 +20,7 @@ PHASE_85_VERIFY = ROOT / "scripts/verify_phase_8_5_protected_staging.py"
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify Phase 8.6 reference-data validation.")
+    parser.add_argument("--offline", action="store_true", help="Explicitly select the default offline verification mode.")
     parser.add_argument("--skip-tests", action="store_true")
     parser.add_argument("--real-data", action="store_true", help="Require cached sources, prepare them, and run local validation.")
     parser.add_argument("--staging", action="store_true", help="Run validation against an already-running protected local staging stack.")
